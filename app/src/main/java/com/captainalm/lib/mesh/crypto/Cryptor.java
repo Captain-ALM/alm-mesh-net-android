@@ -2,6 +2,8 @@ package com.captainalm.lib.mesh.crypto;
 
 import com.captainalm.lib.mesh.utils.InputStreamTransfer;
 
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -53,7 +55,7 @@ public class Cryptor implements ICryptor {
         if (this.symmetricKey.get() == null)
             throw new GeneralSecurityException("No Key");
         try {
-            Cipher cc = Cipher.getInstance("ChaCha20");
+            Cipher cc = Cipher.getInstance("ChaCha20", BouncyCastleProvider.PROVIDER_NAME);
             IvParameterSpec ivp = new IvParameterSpec(lIV, 0, 12);
             cc.init(mode, new SecretKeySpec(this.symmetricKey.get() ,"ChaCha20"), ivp);
             return cc;
