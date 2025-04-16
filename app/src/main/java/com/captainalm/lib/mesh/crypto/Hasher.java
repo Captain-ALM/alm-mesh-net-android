@@ -1,5 +1,7 @@
 package com.captainalm.lib.mesh.crypto;
 
+import com.captainalm.mesh.TheApplication;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.MessageDigest;
@@ -12,6 +14,11 @@ import java.security.NoSuchAlgorithmException;
  */
 public class Hasher implements IHasher {
     final ThreadLocal<MessageDigest> lDigest = new ThreadLocal<>();
+    private final TheApplication context;
+
+    public Hasher(TheApplication context) {
+        this.context = context;
+    }
 
     @Override
     public byte[] hash(byte[] bytes) {
@@ -22,6 +29,8 @@ public class Hasher implements IHasher {
                 lDigest.set(MessageDigest.getInstance("SHA-256"));
             return lDigest.get().digest(bytes);
         } catch (NoSuchAlgorithmException e) {
+            if (context != null)
+                context.showException(e);
             return new byte[32];
         }
     }
@@ -43,6 +52,8 @@ public class Hasher implements IHasher {
             }
             return lDigest.get().digest();
         } catch (NoSuchAlgorithmException e) {
+            if (context != null)
+                context.showException(e);
             return new byte[32];
         }
     }

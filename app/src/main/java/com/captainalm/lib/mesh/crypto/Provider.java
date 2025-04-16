@@ -1,5 +1,9 @@
 package com.captainalm.lib.mesh.crypto;
 
+import android.content.Context;
+
+import com.captainalm.mesh.TheApplication;
+
 import org.bouncycastle.jcajce.provider.asymmetric.mldsa.BCMLDSAPrivateKey;
 import org.bouncycastle.jcajce.provider.asymmetric.mldsa.BCMLDSAPublicKey;
 import org.bouncycastle.jcajce.provider.asymmetric.mlkem.BCMLKEMPrivateKey;
@@ -34,6 +38,19 @@ public class Provider implements IProvider {
     private static final KeyPairGenerator mlKEMKeyPairGenerator;
     private static final KeyPairGenerator mlDSAKeyPairGenerator;
     private static final Random random = new SecureRandom();
+
+    private final TheApplication context;
+
+    public Provider(Context context) {
+        if (context instanceof TheApplication ta)
+            this.context = ta;
+        else if (context.getApplicationContext() instanceof TheApplication ta)
+            this.context = ta;
+        else
+            this.context = null;
+        hasher = new Hasher(this.context);
+
+    }
 
     static { //Init all key pair generators.
         KeyPairGenerator keyPairGeneratorTemp;
@@ -149,7 +166,7 @@ public class Provider implements IProvider {
         return crypt;
     }
 
-    private final IHasher hasher = new Hasher();
+    private final IHasher hasher;
     @Override
     public IHasher GetHasherInstance() {
         return hasher;
