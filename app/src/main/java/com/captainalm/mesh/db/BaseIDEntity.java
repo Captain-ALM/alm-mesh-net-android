@@ -3,9 +3,8 @@ package com.captainalm.mesh.db;
 import androidx.annotation.NonNull;
 import androidx.room.ColumnInfo;
 import androidx.room.Ignore;
-import androidx.room.PrimaryKey;
 
-import com.captainalm.lib.mesh.crypto.Provider;
+import com.captainalm.lib.mesh.utils.BytesToHex;
 
 /**
  * Provides an abstract class for storing an ID.
@@ -15,16 +14,16 @@ import com.captainalm.lib.mesh.crypto.Provider;
 public abstract class BaseIDEntity {
     @ColumnInfo(name = "id")
     @NonNull
-    public String ID;
+    public String ID = "";
 
     @Ignore
     public void setID(byte[] newID) {
-        ID = Provider.base64Encode(newID);
+        ID = BytesToHex.bytesToHex(newID);
     }
 
     @Ignore
     public byte[] getID() {
-        return Provider.base64Decode(ID);
+        return BytesToHex.hexToBytes(ID);
     }
 
     /**
@@ -47,6 +46,6 @@ public abstract class BaseIDEntity {
 
     @Ignore
     public boolean valid() {
-        return ID != null && !ID.isEmpty();
+        return !ID.isEmpty();
     }
 }

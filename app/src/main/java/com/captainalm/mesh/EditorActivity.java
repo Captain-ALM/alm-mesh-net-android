@@ -111,14 +111,20 @@ public class EditorActivity extends AppCompatActivity {
             closeButton.setText(R.string.editor_add);
             closeButton.setOnClickListener(v -> {
                 TheDatabase db = app.database;
-                obj.setID(Provider.base64Decode(idBox.getText().toString()));
+                if (obj instanceof AllowedSignature)
+                    obj.setID(Provider.base64Decode(idBox.getText().toString()));
+                else if (idBox.getText().length() == 64)
+                    obj.ID = idBox.getText().toString();
+                else
+                    obj.ID = "";
                 if (obj.valid()) {
                     switch (user) {
                         case AllowedNodes -> db.getAllowedNodeDAO().addAllowedNode((AllowedNode) obj);
                         case BlockedNodes -> db.getBlockedNodeDAO().addBlockedNode((BlockedNode) obj);
                         case AllowedNodeSignatureKeys -> db.getAllowedSignatureDAO().addAllowedSignature((AllowedSignature) obj);
                     }
-                }
+                } else if (app != null)
+                    app.showException(new Exception("Editor Entry Invalid!"));
                 switchToMain();
             });
         } else {

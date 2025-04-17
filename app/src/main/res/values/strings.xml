@@ -3,10 +3,11 @@
     <string name="title_activity_main">MainActivity</string>
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
-    <string name="nav_header_title">Android Studio</string>
-    <string name="nav_header_subtitle">android.studio@android.com</string>
+    <string name="nav_header_title">Meshnet Android</string>
+    <string name="nav_header_subtitle">captainalm@captainalm.com \n Alfred.Manville@city.ac.uk</string>
     <string name="nav_header_desc">Navigation header</string>
     <string name="action_settings">Settings</string>
+    <string name="about_info">Mesh Net (Lib) © Alfred Manville BSD-3-Clause License</string>
 
     <string name="menu_home">Home</string>
     <string name="menu_gallery">Gallery</string>
@@ -39,4 +40,18 @@
     <string name="allow">Allow</string>
     <string name="deny">Deny</string>
     <string name="delete">Delete</string>
+
+    <string name="settings_enable">Toggle Network</string>
+    <string name="settings_keygen">Generate New Keys</string>
+    <string name="settings_packet_cache">Packet Cache Size</string>
+    <string name="settings_max_ttl">Max TTL</string>
+    <string name="settings_excluded_addr">Excluded Addresses</string>
+    <string name="settings_rec_pub">Recommendation Key</string>
+    <string name="settings_rec_sig">Recommendation Signature</string>
+    <string name="settings_gateway">Route through Gateway</string>
+    <string name="settings_encryption_mode">E2E is</string>
+    <string name="settings_encryption_off">Off</string>
+    <string name="settings_encryption_on">On</string>
+    <string name="settings_encryption_required">Required</string>
+    <string name="settings_encryption_mandatory">Mandatory</string>
 </resources>

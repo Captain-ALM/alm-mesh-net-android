@@ -3,7 +3,7 @@ package com.captainalm.mesh.db;
 import androidx.room.Entity;
 import androidx.room.Ignore;
 
-import com.captainalm.lib.mesh.crypto.Provider;
+import com.captainalm.lib.mesh.utils.BytesToHex;
 
 /**
  * Provides an Allowed Node.
@@ -17,7 +17,7 @@ public class AllowedNode extends BaseIDEntity {
 
     @Ignore
     public AllowedNode(byte[] ID){
-        this.ID = Provider.base64Encode(ID);
+        this.ID = BytesToHex.bytesToHex(ID);
     }
 }
 

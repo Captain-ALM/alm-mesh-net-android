@@ -3,7 +3,7 @@ package com.captainalm.mesh.db;
 import androidx.room.Entity;
 import androidx.room.Ignore;
 
-import com.captainalm.lib.mesh.crypto.Provider;
+import com.captainalm.lib.mesh.utils.BytesToHex;
 
 /**
  * Provides peering requests.
@@ -17,7 +17,7 @@ public class PeerRequest extends BaseIDEntity {
 
     @Ignore
     public PeerRequest(byte[] ID){
-        this.ID = Provider.base64Encode(ID);
+        this.ID = BytesToHex.bytesToHex(ID);
     }
 }
 

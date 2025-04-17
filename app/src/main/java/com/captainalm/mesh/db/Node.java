@@ -4,8 +4,8 @@ import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.Ignore;
 
-import com.captainalm.lib.mesh.crypto.Provider;
 import com.captainalm.lib.mesh.routing.graphing.GraphNode;
+import com.captainalm.lib.mesh.utils.BytesToHex;
 
 /**
  * Provides an Entity to store a connected node.
@@ -28,15 +28,15 @@ public class Node extends BaseIDEntity {
 
     @Ignore
     public Node(GraphNode nodeIn) {
-        ID = Provider.base64Encode(nodeIn.ID);
+        this.ID = BytesToHex.bytesToHex(nodeIn.ID);
         isGateway = (nodeIn.isGateway ? 1 : 0);
         hasEncryption = (nodeIn.getEncryptionKey() == null ? 0 : 1);
         siblings = "";
         ethereal = "";
         for (GraphNode cNode : nodeIn.siblings)
-            siblings += Provider.base64Encode(cNode.ID) + ":";
+            siblings += BytesToHex.bytesToHex(cNode.ID) + ":";
         for (GraphNode cNode : nodeIn.etherealNodes)
-            ethereal += Provider.base64Encode(cNode.ID) + ":";
+            ethereal += BytesToHex.bytesToHex(cNode.ID) + ":";
         siblings = siblings.substring(0, siblings.length() - 1);
         ethereal = ethereal.substring(0, ethereal.length() - 1);
     }

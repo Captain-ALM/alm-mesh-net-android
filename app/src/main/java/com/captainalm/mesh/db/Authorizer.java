@@ -2,6 +2,7 @@ package com.captainalm.mesh.db;
 
 import com.captainalm.lib.mesh.crypto.Provider;
 import com.captainalm.lib.mesh.handshake.IPeerAuthorizer;
+import com.captainalm.lib.mesh.utils.BytesToHex;
 
 /**
  * Tries to authorize a peer.
@@ -19,7 +20,7 @@ public final class Authorizer implements IPeerAuthorizer {
     public boolean authorize(byte[] ID, byte[] recommendationPubKey) {
         if (ID == null)
             return false;
-        if (theDatabase.getAllowedNodeDAO().getAllowedNode(Provider.base64Encode(ID)) != null)
+        if (theDatabase.getAllowedNodeDAO().getAllowedNode(BytesToHex.bytesToHex(ID)) != null)
             return true;
         if (recommendationPubKey == null)
             return false;
