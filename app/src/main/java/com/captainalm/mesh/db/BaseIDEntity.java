@@ -39,4 +39,14 @@ public abstract class BaseIDEntity {
         for (byte b : cID) code += b;
         return (code < 0) ? code + 128: code;
     }
+
+    @Ignore
+    public String extraData() {
+        return Integer.toString(getCheckCode());
+    }
+
+    @Ignore
+    public boolean valid() {
+        return ID != null && !ID.isEmpty();
+    }
 }

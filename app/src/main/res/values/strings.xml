@@ -11,6 +11,32 @@
     <string name="menu_home">Home</string>
     <string name="menu_gallery">Gallery</string>
     <string name="menu_slideshow">Slideshow</string>
+
+    <string name="menu_settings">Settings</string>
+    <string name="menu_node_browser">Node Topology</string>
+    <string name="menu_allowed_nodes">Allowed Nodes</string>
+    <string name="menu_blocked_nodes">Blocked Nodes</string>
+    <string name="menu_allowed_keys">Allowed Keys</string>
+    <string name="menu_peer_requests">Peering Requests</string>
+    <string name="menu_about">About</string>
+
     <string name="error_channel">Error Channel</string>
     <string name="error_channel_desc">Shows Exceptions.</string>
+    <string name="peer_channel">Peering Request Channel</string>
+    <string name="peer_channel_desc">Shows Peering Requests.</string>
+    <string name="title_activity_editor">EditorActivity</string>
+
+    <string name="check_code">Check Code</string>
+    <string name="editor_allowed_node">Allowed Node</string>
+    <string name="editor_blocked_node">Blocked Node</string>
+    <string name="editor_allowed_key">Allowed Key</string>
+    <string name="editor_peer_request">Peering Request</string>
+    <string name="editor_add">Add</string>
+    <string name="editor_view">View</string>
+    <string name="editor_key">Public Key</string>
+    <string name="editor_id">ID</string>
+    <string name="close">Close</string>
+    <string name="allow">Allow</string>
+    <string name="deny">Deny</string>
+    <string name="delete">Delete</string>
 </resources>

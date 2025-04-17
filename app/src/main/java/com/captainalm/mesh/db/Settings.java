@@ -37,6 +37,14 @@ public class Settings {
     @ColumnInfo(name = "excluded_addresses")
     public String excludedAddresses;
 
+    @ColumnInfo(name = "rec_sig_key")
+    public String recommendedSigPublicKey;
+    @ColumnInfo(name = "rec_sig")
+    public String recommendedSig;
+
+    @ColumnInfo(name = "gateway_on")
+    public int gatewayOn;
+
     @Ignore
     public String[] getExcludedAddresses() {
         if (excludedAddresses == null)
@@ -101,5 +109,38 @@ public class Settings {
             etherealPrivateKeyDSA = "";
         else
             etherealPrivateKeyDSA = Provider.base64Encode(Provider.getMLDsaPrivateKeyBytes(key));
+    }
+
+    @Ignore
+    public byte[] getRecommendKey() {
+        if (recommendedSigPublicKey == null)
+            return new byte[0];
+        return Provider.base64Decode(recommendedSigPublicKey);
+    }
+    @Ignore
+    public byte[] getRecommendedSig() {
+        if (recommendedSig == null)
+            return new byte[0];
+        return Provider.base64Decode(recommendedSig);
+    }
+
+    @Ignore
+    public boolean gatewayMode() {
+        return gatewayOn == 1;
+    }
+
+    @Ignore
+    public boolean e2eEnabled() {
+        return encryptionMode > 0;
+    }
+
+    @Ignore
+    public boolean e2eRequired() {
+        return encryptionMode > 1;
+    }
+
+    @Ignore
+    public boolean e2eIgnoreNonEncryptedPackets() {
+        return encryptionMode > 2;
     }
 }

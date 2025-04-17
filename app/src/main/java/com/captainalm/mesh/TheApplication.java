@@ -4,7 +4,6 @@ import android.app.Application;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.pm.PackageManager;
-import android.os.Build;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
@@ -14,7 +13,9 @@ import androidx.room.RoomDatabase;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 
 import com.captainalm.lib.mesh.crypto.Provider;
+import com.captainalm.lib.mesh.routing.graphing.GraphNode;
 import com.captainalm.mesh.db.Authorizer;
+import com.captainalm.mesh.db.PeerRequest;
 import com.captainalm.mesh.db.TheDatabase;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -35,6 +36,8 @@ public class TheApplication extends Application {
     public Authorizer authorizer;
     public TheDatabase database;
     private String errorNotifID;
+    private String peerNotifID;
+    public GraphNode thisNode;
 
      // Adapted from:
      // https://stackoverflow.com/questions/2584401/how-to-add-bouncy-castle-algorithm-to-android/66323575#66323575
@@ -59,9 +62,11 @@ public class TheApplication extends Application {
                     }
                 }
         ).build();
+        cryptographyProvider = new Provider(getApplicationContext());
         authorizer = new Authorizer(database);
         super.onCreate();
         errorNotifID = makeErrorChannel(errorNotifID);
+        peerNotifID = makePeeringChannel(peerNotifID);
     }
 
     private String makeErrorChannel(String ID) {
@@ -70,6 +75,15 @@ public class TheApplication extends Application {
         NotificationChannel channel = new NotificationChannel(ID,
                 getString(R.string.error_channel), NotificationManager.IMPORTANCE_MIN);
         channel.setDescription(getString(R.string.error_channel_desc));
+        getSystemService(NotificationManager.class).createNotificationChannel(channel);
+        return ID;
+    }
+    private String makePeeringChannel(String ID) {
+        if (ID == null)
+            ID = UUID.randomUUID().toString();
+        NotificationChannel channel = new NotificationChannel(ID,
+                getString(R.string.peer_channel), NotificationManager.IMPORTANCE_HIGH);
+        channel.setDescription(getString(R.string.peer_channel_desc));
         getSystemService(NotificationManager.class).createNotificationChannel(channel);
         return ID;
     }
@@ -85,5 +99,13 @@ public class TheApplication extends Application {
                         e.getClass() + "\n"  + e.getMessage() + "\n" + esw)).setAutoCancel(true);
         if (ActivityCompat.checkSelfPermission(this, "android.permission.POST_NOTIFICATIONS") == PackageManager.PERMISSION_GRANTED)
             getSystemService(NotificationManager.class).notify(new Random().nextInt(8) + 100, builder.build());
+    }
+    public void showPeeringOperation(PeerRequest req) {
+        if (peerNotifID == null || req == null)
+            return;
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, peerNotifID)
+                .setContentTitle("Peering Request " + req.getCheckCode()).setContentText(req.ID).setAutoCancel(true);
+        if (ActivityCompat.checkSelfPermission(this, "android.permission.POST_NOTIFICATIONS") == PackageManager.PERMISSION_GRANTED)
+            getSystemService(NotificationManager.class).notify(99, builder.build());
     }
 }

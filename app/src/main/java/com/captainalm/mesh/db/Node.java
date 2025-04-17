@@ -54,4 +54,10 @@ public class Node extends BaseIDEntity {
             return new String[0];
         return ethereal.split(":");
     }
+
+    @Ignore
+    @Override
+    public String extraData() {
+        return ((isGateway == 1) ? "G" : "") + ((hasEncryption == 1 ? "E" : ""));
+    }
 }
