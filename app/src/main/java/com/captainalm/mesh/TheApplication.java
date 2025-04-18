@@ -17,11 +17,13 @@ import androidx.sqlite.db.SupportSQLiteDatabase;
 import com.captainalm.lib.mesh.crypto.Provider;
 import com.captainalm.lib.mesh.routing.graphing.GraphNode;
 import com.captainalm.mesh.db.Authorizer;
+import com.captainalm.mesh.db.Node;
 import com.captainalm.mesh.db.PeerRequest;
 import com.captainalm.mesh.db.Settings;
 import com.captainalm.mesh.db.TheDatabase;
 
 import org.bouncycastle.jcajce.interfaces.MLDSAPrivateKey;
+import org.bouncycastle.jcajce.interfaces.MLKEMPrivateKey;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import java.io.PrintWriter;
@@ -58,6 +60,7 @@ public class TheApplication extends Application {
 
     @Override
     public void onCreate() {
+        super.onCreate();
         database = Room.databaseBuilder(getApplicationContext(), TheDatabase.class, "Datacore").allowMainThreadQueries().addCallback(
                 new RoomDatabase.Callback() {
                     @Override
@@ -73,7 +76,6 @@ public class TheApplication extends Application {
         ).build();
         cryptographyProvider = new Provider(getApplicationContext());
         authorizer = new Authorizer(database);
-        super.onCreate();
         errorNotifID = makeErrorChannel(errorNotifID);
         peerNotifID = makePeeringChannel(peerNotifID);
         obtainSettings();
@@ -87,7 +89,7 @@ public class TheApplication extends Application {
             this.settings.maxTTL = 64;
             KeyPair kem = Provider.generateMLKemKeyPair();
             if (kem != null)
-                this.settings.setPrivateKeyDSA((MLDSAPrivateKey) kem.getPrivate());
+                this.settings.setPrivateKeyKEM((MLKEMPrivateKey) kem.getPrivate());
             KeyPair dsa = Provider.generateMLDsaKeyPair();
             if (dsa != null)
                 this.settings.setPrivateKeyDSA((MLDSAPrivateKey) dsa.getPrivate());
@@ -100,12 +102,14 @@ public class TheApplication extends Application {
     private void setThisNodeFromSettings() {
         if (settings == null)
             return;
-        byte[] kemKey = Provider.base64Decode(this.settings.privateKeyKEM);
-        byte[] dsaKey = Provider.base64Decode(this.settings.privateKeyDSA);
+        byte[] kemKey = this.settings.getPrivateKeyKEM().getPublicKey().getPublicData();
+        byte[] dsaKey = this.settings.getPrivateKeyDSA().getPublicKey().getPublicData();
         if (kemKey != null && dsaKey != null)
             this.thisNode = new GraphNode(kemKey, dsaKey, cryptographyProvider.GetHasherInstance());
         else
             this.thisNode = new GraphNode(new byte[32]);
+        database.getNodesDAO().clear();
+        database.getNodesDAO().addNode(new Node(this.thisNode));
     }
 
     public void regenerateKeys() {
@@ -113,7 +117,7 @@ public class TheApplication extends Application {
             return;
         KeyPair kem = Provider.generateMLKemKeyPair();
         if (kem != null)
-            this.settings.setPrivateKeyDSA((MLDSAPrivateKey) kem.getPrivate());
+            this.settings.setPrivateKeyKEM((MLKEMPrivateKey) kem.getPrivate());
         KeyPair dsa = Provider.generateMLDsaKeyPair();
         if (dsa != null)
             this.settings.setPrivateKeyDSA((MLDSAPrivateKey) dsa.getPrivate());
@@ -127,6 +131,7 @@ public class TheApplication extends Application {
 
     public void stopService() {
         serviceActive = false;
+        sendBroadcast(new Intent(IntentActions.REFRESH));
         // TODO: ^ Should be in the service
     }
 
@@ -159,7 +164,7 @@ public class TheApplication extends Application {
         StringWriter esw = new StringWriter();
         e.printStackTrace(new PrintWriter(esw));
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, errorNotifID)
-                .setContentTitle(e.getClass().toString()).setContentText(e.getClass() + "\n"
+                .setSmallIcon(R.drawable.ic_launcher_foreground).setContentTitle(e.getClass().toString()).setContentText(e.getClass() + "\n"
                 + e.getMessage()).setStyle(new NotificationCompat.BigTextStyle().bigText(
                         e.getClass() + "\n"  + e.getMessage() + "\n" + esw)).setAutoCancel(true);
         if (ActivityCompat.checkSelfPermission(this, "android.permission.POST_NOTIFICATIONS") == PackageManager.PERMISSION_GRANTED)
@@ -169,12 +174,12 @@ public class TheApplication extends Application {
         if (peerNotifID == null || req == null)
             return;
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, peerNotifID)
-                .setContentTitle("Peering Request " + req.getCheckCode()).setContentText(req.ID).setAutoCancel(true);
+                .setSmallIcon(R.drawable.network_peering).setContentTitle("Peering Request " + req.getCheckCode()).setContentText(req.ID).setAutoCancel(true);
         if (ActivityCompat.checkSelfPermission(this, "android.permission.POST_NOTIFICATIONS") == PackageManager.PERMISSION_GRANTED)
             getSystemService(NotificationManager.class).notify(99, builder.build());
     }
 
     public void launchEditor(Context context, FragmentIndicator frag, boolean adding, String id) {
-        startActivity(new Intent(context, EditorActivity.class).putExtra("frag", frag.getID()).putExtra("adding", adding).putExtra("edit_id", id));
+        context.startActivity(new Intent(context, EditorActivity.class).putExtra("frag", frag.getID()).putExtra("adder", adding).putExtra("edit_id", id));
     }
 }

@@ -38,7 +38,7 @@
     <string name="delete">Delete</string>
 
     <string name="settings_enable">Toggle Network</string>
-    <string name="settings_keygen">Generate New Keys</string>
+    <string name="settings_keygen">New Keys</string>
     <string name="settings_packet_cache">Packet Cache Size</string>
     <string name="settings_max_ttl">Max TTL</string>
     <string name="settings_excluded_addr">Excluded Addresses</string>
@@ -47,7 +47,5 @@
     <string name="settings_gateway">Route through Gateway</string>
     <string name="settings_encryption_mode">E2E is</string>
     <string name="settings_onion">Onion Mode</string>
-    <string name="settings_new_circuit">New Onion Circuit</string>
-    <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="settings_new_circuit">New Circuit</string>
 </resources>

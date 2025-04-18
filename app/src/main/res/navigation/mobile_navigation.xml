@@ -3,7 +3,13 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/mobile_navigation"
-    app:startDestination="@+id/nav_settings">
+    app:startDestination="@id/nav_blank">
+
+    <fragment
+        android:id="@+id/nav_blank"
+        android:name="com.captainalm.mesh.ui.BlankFragment"
+        android:label=""
+        tools:layout="@layout/blank"/>
 
     <fragment
         android:id="@+id/nav_about"
@@ -14,7 +20,7 @@
     <fragment
         android:id="@+id/nav_settings"
         android:name="com.captainalm.mesh.ui.settings.SettingsFragment"
-        android:label="About"
+        android:label="Settings"
         tools:layout="@layout/fragment_settings"/>
 
     <fragment

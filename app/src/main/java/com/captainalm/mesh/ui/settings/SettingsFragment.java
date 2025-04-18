@@ -9,26 +9,35 @@ import android.view.ViewGroup;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import com.captainalm.mesh.FragmentIndicator;
+import com.captainalm.mesh.IRefreshable;
+import com.captainalm.mesh.MainActivity;
 import com.captainalm.mesh.TheApplication;
 import com.captainalm.mesh.databinding.FragmentSettingsBinding;
 import com.captainalm.mesh.db.Node;
+import com.google.android.material.snackbar.Snackbar;
 
 /**
  * Provides a Settings fragment.
  *
  * @author Alfred Manville
  */
-public class SettingsFragment extends Fragment {
+public class SettingsFragment extends Fragment implements IRefreshable {
     private TheApplication app;
     private FragmentSettingsBinding binding;
+    private Context container;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        Context context = getContext();
+        Context context = getActivity();
         if (context != null && context.getApplicationContext() instanceof TheApplication ta)
             app = ta;
+
+        container = context;
+        if (container instanceof MainActivity ma)
+            ma.addRefreshable(this);
     }
 
     @Override
@@ -61,17 +70,17 @@ public class SettingsFragment extends Fragment {
         });
     }
 
-    public void refresh() {
+    protected void refresh() {
         if (app == null || binding == null || app.settings == null || app.thisNode == null)
             return;
         Node c = new Node(app.thisNode);
-        binding.textViewSettingsCheckCode.setText(c.getCheckCode());
+        binding.textViewSettingsCheckCode.setText(Integer.toString(c.getCheckCode()));
         binding.textViewSettingsID.setText(c.ID);
         binding.textViewSettingsIPv4.setText(ipv4ToIP(app.thisNode.getIPv4Address()));
         binding.textViewSettingsIPv6.setText(ipv6HexToIP(app.thisNode.getIPv6AddressString()));
         binding.switchEnabler.setChecked(app.serviceActive);
-        binding.editTextNumberPacketCache.setText(app.settings.packetChargeSize);
-        binding.editTextNumberMaxTTL.setText(app.settings.maxTTL);
+        binding.editTextNumberPacketCache.setText(Integer.toString(app.settings.packetChargeSize));
+        binding.editTextNumberMaxTTL.setText(Integer.toString(app.settings.maxTTL));
         binding.spinnerEncMode.setSelection(app.settings.encryptionMode);
         binding.editTextExcAddr.setText(app.settings.excludedAddresses);
         binding.editTextRecKey.setText(app.settings.recommendedSigPublicKey);
@@ -104,29 +113,39 @@ public class SettingsFragment extends Fragment {
         int remainder = 0;
         while (remaining > 0) {
             if (remaining > 3) {
-                address += hex.substring(pos, pos + 4);
+                address += hex.substring(pos, pos + 4) + ":";
                 pos += 4;
                 remaining -= 4;
             } else {
                 address += hex.substring(pos, pos + remaining);
                 pos += remaining;
                 remainder = 4 - remaining;
+                if (remainder == 0)
+                    address += ":";
                 remaining = 0;
             }
         }
-        while (remainder > 0) {
-            remainder--;
-            address += "0";
+        if (remainder > 0) {
+            while (remainder > 0) {
+                remainder--;
+                address += "0";
+            }
+            address += ":";
         }
-        return address + "]";
+        return address.substring(0, address.length() - 1) + "]";
     }
     private void save() {
         if (app == null || binding == null || app.settings == null || app.serviceActive)
             return;
-        binding.editTextNumberPacketCache.setText(app.settings.packetChargeSize);
         try {
             app.settings.packetChargeSize = Integer.parseInt(binding.editTextNumberPacketCache.getText().toString());
+            if (app.settings.packetChargeSize < 4)
+                app.settings.packetChargeSize = 4;
             app.settings.maxTTL = Integer.parseInt(binding.editTextNumberMaxTTL.getText().toString());
+            if (app.settings.maxTTL < 1)
+                app.settings.maxTTL = 1;
+            if (app.settings.maxTTL > 254)
+                app.settings.maxTTL = 254;
             app.settings.encryptionMode = binding.spinnerEncMode.getSelectedItemPosition();
             app.settings.excludedAddresses = binding.editTextExcAddr.getText().toString();
             app.settings.recommendedSigPublicKey = binding.editTextRecSig.getText().toString();
@@ -146,7 +165,16 @@ public class SettingsFragment extends Fragment {
 
     @Override
     public void onDestroy() {
+        if (container instanceof MainActivity ma)
+            ma.removeRefreshable(this);
         super.onDestroy();
         app = null;
+        container = null;
+    }
+
+    @Override
+    public void refresh(FragmentIndicator fragRefreshing) {
+        if (fragRefreshing == FragmentIndicator.Unknown)
+            refresh();
     }
 }

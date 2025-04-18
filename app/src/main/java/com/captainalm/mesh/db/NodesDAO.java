@@ -28,4 +28,7 @@ public interface NodesDAO {
 
     @Query("select * from nodes where id IN(:nodeIDs)")
     List<Node> getNodes(String[] nodeIDs);
+
+    @Query("DELETE FROM nodes")
+    void clear();
 }

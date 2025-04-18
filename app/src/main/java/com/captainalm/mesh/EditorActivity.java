@@ -20,6 +20,7 @@ import com.captainalm.mesh.db.BaseIDEntity;
 import com.captainalm.mesh.db.BlockedNode;
 import com.captainalm.mesh.db.PeerRequest;
 import com.captainalm.mesh.db.TheDatabase;
+import com.google.android.material.snackbar.Snackbar;
 
 public class EditorActivity extends AppCompatActivity {
     FragmentIndicator user = FragmentIndicator.Unknown;
@@ -123,9 +124,9 @@ public class EditorActivity extends AppCompatActivity {
                         case BlockedNodes -> db.getBlockedNodeDAO().addBlockedNode((BlockedNode) obj);
                         case AllowedNodeSignatureKeys -> db.getAllowedSignatureDAO().addAllowedSignature((AllowedSignature) obj);
                     }
+                    switchToMain();
                 } else if (app != null)
-                    app.showException(new Exception("Editor Entry Invalid!"));
-                switchToMain();
+                    Snackbar.make(v, "Invalid Entry!", Snackbar.LENGTH_LONG).setAnchorView(R.id.buttonActionClose).setAction("Entry Issue", null).show();
             });
         } else {
             idBox.setInputType(InputType.TYPE_NULL);
@@ -168,6 +169,6 @@ public class EditorActivity extends AppCompatActivity {
     }
 
     private void switchToMain() {
-        startActivity(new Intent(this, MainActivity.class).putExtra("frag", user.getID()));
+        this.startActivity(new Intent(this, MainActivity.class).putExtra("frag", user.getID()).putExtra("refresh", true));
     }
 }

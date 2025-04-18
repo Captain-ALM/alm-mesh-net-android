@@ -27,4 +27,9 @@ public abstract class DatabaselistFragment extends ListFragment implements IList
     protected ListAdapter getAdapter(Context context) {
         return new DatabaseListAdapter(context, this, fragmentIndicator);
     }
+
+    @Override
+    protected FragmentIndicator getRelatedFragment() {
+        return fragmentIndicator;
+    }
 }

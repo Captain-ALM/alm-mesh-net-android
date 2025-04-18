@@ -37,8 +37,10 @@ public class Node extends BaseIDEntity {
             siblings += BytesToHex.bytesToHex(cNode.ID) + ":";
         for (GraphNode cNode : nodeIn.etherealNodes)
             ethereal += BytesToHex.bytesToHex(cNode.ID) + ":";
-        siblings = siblings.substring(0, siblings.length() - 1);
-        ethereal = ethereal.substring(0, ethereal.length() - 1);
+        if (!siblings.isEmpty())
+            siblings = siblings.substring(0, siblings.length() - 1);
+        if (!ethereal.isEmpty())
+            ethereal = ethereal.substring(0, ethereal.length() - 1);
     }
 
     @Ignore

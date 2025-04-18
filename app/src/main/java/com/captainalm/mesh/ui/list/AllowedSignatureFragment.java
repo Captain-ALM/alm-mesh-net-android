@@ -8,7 +8,7 @@ import com.captainalm.mesh.FragmentIndicator;
  * @author Alfred Manville
  */
 public class AllowedSignatureFragment extends DatabaselistFragment {
-    public AllowedSignatureFragment(FragmentIndicator frag) {
+    public AllowedSignatureFragment() {
         super(FragmentIndicator.AllowedNodeSignatureKeys);
     }
 }
