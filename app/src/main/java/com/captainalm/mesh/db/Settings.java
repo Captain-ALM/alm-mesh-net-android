@@ -1,5 +1,6 @@
 package com.captainalm.mesh.db;
 
+import androidx.annotation.NonNull;
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.Ignore;
@@ -23,10 +24,12 @@ public class Settings {
     @ColumnInfo(name = "encryption")
     public int encryptionMode;
     @ColumnInfo(name = "private_Key_kem")
-    public String privateKeyKEM;
+    @NonNull
+    public String privateKeyKEM = "";
 
     @ColumnInfo(name = "private_key_dsa")
-    public String privateKeyDSA;
+    @NonNull
+    public String privateKeyDSA = "";
 
     @ColumnInfo(name = "ethereal_private_Key_kem")
     public String etherealPrivateKeyKEM;
@@ -35,27 +38,26 @@ public class Settings {
     public String etherealPrivateKeyDSA;
 
     @ColumnInfo(name = "excluded_addresses")
-    public String excludedAddresses;
+    @NonNull
+    public String excludedAddresses = "";
 
     @ColumnInfo(name = "rec_sig_key")
-    public String recommendedSigPublicKey;
+    @NonNull
+    public String recommendedSigPublicKey = "";
     @ColumnInfo(name = "rec_sig")
-    public String recommendedSig;
+    @NonNull
+    public String recommendedSig = "";
 
     @ColumnInfo(name = "gateway_on")
     public int gatewayOn;
 
     @Ignore
     public String[] getExcludedAddresses() {
-        if (excludedAddresses == null)
-            return new String[0];
         return excludedAddresses.split(";");
     }
 
     @Ignore
     public MLKEMPrivateKey getPrivateKeyKEM() {
-        if (privateKeyKEM == null)
-            return null;
         return (MLKEMPrivateKey) Provider.getMLKemPrivateKey(Provider.base64Decode(privateKeyKEM));
     }
 
@@ -69,8 +71,6 @@ public class Settings {
 
     @Ignore
     public MLDSAPrivateKey getPrivateKeyDSA() {
-        if (privateKeyKEM == null)
-            return null;
         return (MLDSAPrivateKey) Provider.getMLDsaPrivateKey(Provider.base64Decode(privateKeyDSA));
     }
 
@@ -113,14 +113,10 @@ public class Settings {
 
     @Ignore
     public byte[] getRecommendKey() {
-        if (recommendedSigPublicKey == null)
-            return new byte[0];
         return Provider.base64Decode(recommendedSigPublicKey);
     }
     @Ignore
     public byte[] getRecommendedSig() {
-        if (recommendedSig == null)
-            return new byte[0];
         return Provider.base64Decode(recommendedSig);
     }
 

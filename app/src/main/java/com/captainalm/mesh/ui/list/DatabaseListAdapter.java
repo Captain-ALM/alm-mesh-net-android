@@ -10,15 +10,16 @@ import com.captainalm.mesh.FragmentIndicator;
  * @author Alfred Manville
  */
 public class DatabaseListAdapter extends ListAdapter {
-    private FragmentIndicator dbID;
+    private final FragmentIndicator dbID;
 
     public DatabaseListAdapter(Context context, IListClickHandler cHandler, FragmentIndicator dbID) {
         super(context, cHandler);
         this.dbID = dbID;
-        refresh();
+        refresh(true);
     }
 
-    public void refresh() {
+    @Override
+    public void refresh(boolean reset) {
         if (app != null) {
             items.clear();
             switch (dbID) {

@@ -3,23 +3,47 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/mobile_navigation"
-    app:startDestination="@+id/nav_home">
+    app:startDestination="@+id/nav_settings">
 
     <fragment
-        android:id="@+id/nav_home"
-        android:name="com.captainalm.mesh.ui.home.HomeFragment"
-        android:label="@string/menu_home"
-        tools:layout="@layout/fragment_home" />
+        android:id="@+id/nav_about"
+        android:name="com.captainalm.mesh.ui.about.AboutFragment"
+        android:label="About"
+        tools:layout="@layout/fragment_about"/>
 
     <fragment
-        android:id="@+id/nav_gallery"
-        android:name="com.captainalm.mesh.ui.gallery.GalleryFragment"
-        android:label="@string/menu_gallery"
-        tools:layout="@layout/fragment_gallery" />
+        android:id="@+id/nav_settings"
+        android:name="com.captainalm.mesh.ui.settings.SettingsFragment"
+        android:label="About"
+        tools:layout="@layout/fragment_settings"/>
 
     <fragment
-        android:id="@+id/nav_slideshow"
-        android:name="com.captainalm.mesh.ui.slideshow.SlideshowFragment"
-        android:label="@string/menu_slideshow"
-        tools:layout="@layout/fragment_slideshow" />
+        android:id="@+id/nav_topology"
+        android:name="com.captainalm.mesh.ui.list.NodeListFragment"
+        android:label="Topology"
+        tools:layout="@layout/fragment_base_listing"/>
+
+    <fragment
+        android:id="@+id/nav_peering"
+        android:name="com.captainalm.mesh.ui.list.PeerRequestFragment"
+        android:label="Peer Requests"
+        tools:layout="@layout/fragment_base_listing"/>
+
+    <fragment
+        android:id="@+id/nav_allowed"
+        android:name="com.captainalm.mesh.ui.list.AllowedNodeFragment"
+        android:label="Allowed Nodes"
+        tools:layout="@layout/fragment_base_listing"/>
+
+    <fragment
+        android:id="@+id/nav_blocked"
+        android:name="com.captainalm.mesh.ui.list.BlockedNodeFragment"
+        android:label="Blocked Nodes"
+        tools:layout="@layout/fragment_base_listing"/>
+
+    <fragment
+        android:id="@+id/nav_allowed_keys"
+        android:name="com.captainalm.mesh.ui.list.AllowedSignatureFragment"
+        android:label="Allowed Public Keys"
+        tools:layout="@layout/fragment_base_listing"/>
 </navigation>

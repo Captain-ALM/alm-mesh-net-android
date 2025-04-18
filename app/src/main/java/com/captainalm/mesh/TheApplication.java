@@ -3,6 +3,8 @@ package com.captainalm.mesh;
 import android.app.Application;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 
 import androidx.annotation.NonNull;
@@ -16,14 +18,19 @@ import com.captainalm.lib.mesh.crypto.Provider;
 import com.captainalm.lib.mesh.routing.graphing.GraphNode;
 import com.captainalm.mesh.db.Authorizer;
 import com.captainalm.mesh.db.PeerRequest;
+import com.captainalm.mesh.db.Settings;
 import com.captainalm.mesh.db.TheDatabase;
 
+import org.bouncycastle.jcajce.interfaces.MLDSAPrivateKey;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.security.KeyPair;
 import java.security.Security;
+import java.util.List;
 import java.util.Random;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -35,9 +42,11 @@ public class TheApplication extends Application {
     public Provider cryptographyProvider;
     public Authorizer authorizer;
     public TheDatabase database;
+    public Settings settings;
     private String errorNotifID;
     private String peerNotifID;
     public GraphNode thisNode;
+    public boolean serviceActive;
 
      // Adapted from:
      // https://stackoverflow.com/questions/2584401/how-to-add-bouncy-castle-algorithm-to-android/66323575#66323575
@@ -67,6 +76,62 @@ public class TheApplication extends Application {
         super.onCreate();
         errorNotifID = makeErrorChannel(errorNotifID);
         peerNotifID = makePeeringChannel(peerNotifID);
+        obtainSettings();
+    }
+
+    private void obtainSettings() {
+        List<Settings> settings = database.getSettingsDAO().getSettings();
+        if (settings == null || settings.isEmpty()) {
+            this.settings = new Settings();
+            this.settings.packetChargeSize = 100000;
+            this.settings.maxTTL = 64;
+            KeyPair kem = Provider.generateMLKemKeyPair();
+            if (kem != null)
+                this.settings.setPrivateKeyDSA((MLDSAPrivateKey) kem.getPrivate());
+            KeyPair dsa = Provider.generateMLDsaKeyPair();
+            if (dsa != null)
+                this.settings.setPrivateKeyDSA((MLDSAPrivateKey) dsa.getPrivate());
+            database.getSettingsDAO().addSettings(this.settings);
+        } else
+            this.settings = settings.get(0);
+        setThisNodeFromSettings();
+    }
+
+    private void setThisNodeFromSettings() {
+        if (settings == null)
+            return;
+        byte[] kemKey = Provider.base64Decode(this.settings.privateKeyKEM);
+        byte[] dsaKey = Provider.base64Decode(this.settings.privateKeyDSA);
+        if (kemKey != null && dsaKey != null)
+            this.thisNode = new GraphNode(kemKey, dsaKey, cryptographyProvider.GetHasherInstance());
+        else
+            this.thisNode = new GraphNode(new byte[32]);
+    }
+
+    public void regenerateKeys() {
+        if (settings == null)
+            return;
+        KeyPair kem = Provider.generateMLKemKeyPair();
+        if (kem != null)
+            this.settings.setPrivateKeyDSA((MLDSAPrivateKey) kem.getPrivate());
+        KeyPair dsa = Provider.generateMLDsaKeyPair();
+        if (dsa != null)
+            this.settings.setPrivateKeyDSA((MLDSAPrivateKey) dsa.getPrivate());
+        database.getSettingsDAO().updateSettings(this.settings);
+        setThisNodeFromSettings();
+    }
+
+    public void invokeService(boolean onion) {
+        serviceActive = true;
+    }
+
+    public void stopService() {
+        serviceActive = false;
+        // TODO: ^ Should be in the service
+    }
+
+    public void regenerateCircuit() {
+
     }
 
     private String makeErrorChannel(String ID) {
@@ -107,5 +172,9 @@ public class TheApplication extends Application {
                 .setContentTitle("Peering Request " + req.getCheckCode()).setContentText(req.ID).setAutoCancel(true);
         if (ActivityCompat.checkSelfPermission(this, "android.permission.POST_NOTIFICATIONS") == PackageManager.PERMISSION_GRANTED)
             getSystemService(NotificationManager.class).notify(99, builder.build());
+    }
+
+    public void launchEditor(Context context, FragmentIndicator frag, boolean adding, String id) {
+        startActivity(new Intent(context, EditorActivity.class).putExtra("frag", frag.getID()).putExtra("adding", adding).putExtra("edit_id", id));
     }
 }

@@ -23,6 +23,7 @@ public class NodeListAdapter extends ListAdapter implements IListClickHandler {
         return this;
     }
 
+    @Override
     public void refresh(boolean reset) {
         if (reset)
             if (app == null)

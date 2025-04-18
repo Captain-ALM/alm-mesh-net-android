@@ -5,16 +5,38 @@
 
     <group android:checkableBehavior="single">
         <item
-            android:id="@+id/nav_home"
-            android:icon="@drawable/ic_menu_camera"
-            android:title="@string/menu_home" />
+            android:id="@+id/nav_settings"
+            android:icon="@drawable/settings_cog"
+            android:title="@string/menu_settings"/>
+
         <item
-            android:id="@+id/nav_gallery"
-            android:icon="@drawable/ic_menu_gallery"
-            android:title="@string/menu_gallery" />
+            android:id="@+id/nav_peering"
+            android:icon="@drawable/network_peering"
+            android:title="@string/menu_peer_requests"/>
+
         <item
-            android:id="@+id/nav_slideshow"
-            android:icon="@drawable/ic_menu_slideshow"
-            android:title="@string/menu_slideshow" />
+            android:id="@+id/nav_allowed"
+            android:icon="@drawable/network_accept"
+            android:title="@string/menu_allowed_nodes"/>
+
+        <item
+            android:id="@+id/nav_allowed_keys"
+            android:icon="@drawable/network_accept_key"
+            android:title="@string/menu_allowed_keys"/>
+
+        <item
+            android:id="@+id/nav_blocked"
+            android:icon="@drawable/network_block"
+            android:title="@string/menu_blocked_nodes"/>
+
+        <item
+            android:id="@+id/nav_topology"
+            android:icon="@drawable/network"
+            android:title="@string/menu_node_browser"/>
+
+        <item
+            android:id="@+id/nav_about"
+            android:icon="@drawable/about"
+            android:title="@string/menu_about"/>
     </group>
 </menu>

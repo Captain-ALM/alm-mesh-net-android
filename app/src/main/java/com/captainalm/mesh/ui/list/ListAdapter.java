@@ -59,6 +59,8 @@ public abstract class ListAdapter extends RecyclerView.Adapter<ListAdapter.ViewH
         return items.size();
     }
 
+    public abstract void refresh(boolean reset);
+
     public String itemIDAt(int index) {
         try {
             return items.get(index).ID;
