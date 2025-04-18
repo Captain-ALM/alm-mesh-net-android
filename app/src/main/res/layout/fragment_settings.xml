@@ -1,137 +1,258 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.widget.TableLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:stretchColumns="1,2"
-    android:paddingStart="5dp"
-    android:paddingEnd="5dp">
+    android:layout_height="match_parent">
 
-    <TableRow
+    <android.widget.TableLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent" >
+        android:layout_height="match_parent"
+        android:layout_marginStart="5dp"
+        android:layout_marginTop="5dp"
+        android:layout_marginEnd="5dp"
+        android:stretchColumns="1,2"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
 
-        <TextView
-            android:id="@+id/textViewSettingsCheckCode"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="5dp"
-            android:text="TextView"
-            android:textIsSelectable="true"
-            android:textAppearance="@style/TextAppearance.AppCompat.Large" />
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" >
 
-        <Space
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
+            <TextView
+                android:id="@+id/textViewSettingsCheckCode"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="5dp"
+                android:textAppearance="@style/TextAppearance.AppCompat.Large"
+                android:textIsSelectable="true" />
 
-        <TextView
-            android:id="@+id/textViewSettingsID"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="5dp"
-            android:textIsSelectable="true"
-            android:text="TextView"
-            android:textAppearance="@style/TextAppearance.AppCompat.Large" />
+            <TextView
+                android:id="@+id/textViewSettingsID"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
 
-    </TableRow>
+                android:textAppearance="@style/TextAppearance.AppCompat.Large"
+                android:textIsSelectable="true" />
+        </TableRow>
 
-    <TableRow
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" >
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
 
-        <Switch
-            android:id="@+id/switchEnabler"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/settings_enable"
-            android:layout_span="3"/>
+            <TextView
+                android:id="@+id/textViewSettingsIPv4"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="5dp"
+                android:textAppearance="@style/TextAppearance.AppCompat.Large"
+                android:textIsSelectable="true" />
 
-    </TableRow>
+            <TextView
+                android:id="@+id/textViewSettingsIPv6"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:textAppearance="@style/TextAppearance.AppCompat.Large"
+                android:textIsSelectable="true" />
+        </TableRow>
 
-    <TableRow
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" >
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
 
-        <Button
-            android:id="@+id/button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/settings_keygen"
-            android:layout_span="3"/>
-    </TableRow>
+            <Switch
+                android:id="@+id/switchEnabler"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:layout_span="2"
+                android:minHeight="48dp"
+                android:text="@string/settings_enable"
+                android:textAppearance="@style/TextAppearance.AppCompat.Small" />
 
-    <TableRow
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" >
+        </TableRow>
 
-        <TextView
-            android:id="@+id/textViewSettingsPacketCache"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="5dp"
-            android:text="@string/settings_packet_cache"
-            android:textAppearance="@style/TextAppearance.AppCompat.Large"
-            android:textIsSelectable="true" />
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
 
-        <Space
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
+            <Button
+                android:id="@+id/buttonSettingsNewKeys"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/settings_keygen"
+                android:textAppearance="@style/TextAppearance.AppCompat.Medium" />
 
-        <EditText
-            android:id="@+id/editTextNumberPacketCache"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:ems="10"
-            android:inputType="number" />
-    </TableRow>
+            <Button
+                android:id="@+id/buttonSettingsNewCircuit"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/settings_new_circuit"
+                android:textAppearance="@style/TextAppearance.AppCompat.Medium" />
 
-    <TableRow
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" >
+        </TableRow>
 
-        <TextView
-            android:id="@+id/textViewSettingsMxTTL"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="5dp"
-            android:text="@string/settings_packet_cache"
-            android:textAppearance="@style/TextAppearance.AppCompat.Large"
-            android:textIsSelectable="true" />
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
 
-        <Space
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
+            <TextView
+                android:id="@+id/textViewSettingsPkCache"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="5dp"
+                android:text="@string/settings_packet_cache"
+                android:textAppearance="@style/TextAppearance.AppCompat.Small"
+                android:textIsSelectable="true" />
 
-        <EditText
-            android:id="@+id/editTextNumberMaxTTL"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:ems="10"
-            android:inputType="number" />
-    </TableRow>
+            <EditText
+                android:id="@+id/editTextNumberPacketCache"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ems="10"
+                android:inputType="number"
+                android:minHeight="48dp"
+                android:textAppearance="@style/TextAppearance.AppCompat.Medium" />
+        </TableRow>
 
-    <TableRow
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
 
-    <TableRow
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+            <TextView
+                android:id="@+id/textViewSettingsMaxTTL"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="5dp"
+                android:text="@string/settings_max_ttl"
+                android:textAppearance="@style/TextAppearance.AppCompat.Small"
+                android:textIsSelectable="true" />
 
-    <TableRow
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+            <EditText
+                android:id="@+id/editTextNumberMaxTTL"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ems="10"
+                android:inputType="number"
+                android:minHeight="48dp"
+                android:textAppearance="@style/TextAppearance.AppCompat.Medium" />
+        </TableRow>
 
-    <TableRow
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
 
-    <TableRow
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+            <TextView
+                android:id="@+id/textViewSettingsEncMode"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="5dp"
+                android:text="@string/settings_encryption_mode"
+                android:textAppearance="@style/TextAppearance.AppCompat.Small"
+                android:textIsSelectable="true" />
 
-    <TableRow
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" >
+            <Spinner
+                android:id="@+id/spinnerEncMode"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:entries="@array/settings_encryption_modes"
+                android:minHeight="48dp"
+                android:spinnerMode="dialog" />
+        </TableRow>
 
-    </TableRow>
-</android.widget.TableLayout>
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <TextView
+                android:id="@+id/textViewExcAddr"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="5dp"
+                android:text="@string/settings_excluded_addr"
+                android:textAppearance="@style/TextAppearance.AppCompat.Small"
+                android:textIsSelectable="true" />
+
+            <EditText
+                android:id="@+id/editTextExcAddr"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ems="10"
+                android:inputType="text"
+                android:minHeight="48dp" />
+        </TableRow>
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <TextView
+                android:id="@+id/textViewRecKey"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="5dp"
+                android:text="@string/settings_rec_pub"
+                android:textAppearance="@style/TextAppearance.AppCompat.Small"
+                android:textIsSelectable="true" />
+
+            <EditText
+                android:id="@+id/editTextRecKey"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ems="10"
+                android:inputType="text"
+                android:minHeight="48dp" />
+        </TableRow>
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <TextView
+                android:id="@+id/textViewRecSig"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="5dp"
+                android:text="@string/settings_rec_sig"
+                android:textAppearance="@style/TextAppearance.AppCompat.Small"
+                android:textIsSelectable="true" />
+
+            <EditText
+                android:id="@+id/editTextRecSig"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ems="10"
+                android:inputType="text"
+                android:minHeight="48dp" />
+        </TableRow>
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" >
+
+            <Switch
+                android:id="@+id/switchGateway"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:layout_span="2"
+                android:minHeight="48dp"
+                android:text="@string/settings_gateway"
+                android:textAppearance="@style/TextAppearance.AppCompat.Small" />
+        </TableRow>
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <Switch
+                android:id="@+id/switchOnion"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:layout_span="2"
+                android:minHeight="48dp"
+                android:text="@string/settings_onion"
+                android:textAppearance="@style/TextAppearance.AppCompat.Small" />
+        </TableRow>
+    </android.widget.TableLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

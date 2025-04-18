@@ -50,8 +50,6 @@
     <string name="settings_rec_sig">Recommendation Signature</string>
     <string name="settings_gateway">Route through Gateway</string>
     <string name="settings_encryption_mode">E2E is</string>
-    <string name="settings_encryption_off">Off</string>
-    <string name="settings_encryption_on">On</string>
-    <string name="settings_encryption_required">Required</string>
-    <string name="settings_encryption_mandatory">Mandatory</string>
+    <string name="settings_onion">Onion Mode</string>
+    <string name="settings_new_circuit">New Onion Circuit</string>
 </resources>

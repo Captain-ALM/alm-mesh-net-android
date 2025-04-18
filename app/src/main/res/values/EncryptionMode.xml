@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="settings_encryption_modes">
+        <item name="settings_encryption_off">Off</item>
+        <item name="settings_encryption_on">On</item>
+        <item name="settings_encryption_required">Required</item>
+        <item name="settings_encryption_mandatory">Mandatory</item>
+    </string-array>
+</resources>
