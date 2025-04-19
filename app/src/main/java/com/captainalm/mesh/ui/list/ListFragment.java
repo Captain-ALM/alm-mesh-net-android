@@ -49,6 +49,7 @@ public abstract class ListFragment extends Fragment implements IRefreshable {
         binding = FragmentBaseListingBinding.inflate(inflater, container, false);
         binding.recyclerViewBase.setAdapter(adapter);
         binding.recyclerViewBase.setLayoutManager(new LinearLayoutManager(this.container));
+        binding.recyclerViewBase.setHasFixedSize(true);
         refresh(getRelatedFragment());
         return binding.getRoot();
     }

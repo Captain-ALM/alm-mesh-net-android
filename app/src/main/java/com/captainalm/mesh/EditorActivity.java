@@ -142,7 +142,7 @@ public class EditorActivity extends AppCompatActivity {
                     switchToMain();
                 });
                 closeButton.setText(R.string.allow);
-                removeButton.setOnClickListener(v -> {
+                closeButton.setOnClickListener(v -> {
                     db.getAllowedNodeDAO().addAllowedNode(new AllowedNode(obj.getID()));
                     db.getPeerRequestDAO().removePeerRequest((PeerRequest) obj);
                     switchToMain();

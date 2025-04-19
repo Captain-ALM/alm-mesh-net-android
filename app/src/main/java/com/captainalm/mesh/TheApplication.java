@@ -33,7 +33,6 @@ import java.security.KeyPair;
 import java.security.Security;
 import java.util.List;
 import java.util.Random;
-import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -50,6 +49,8 @@ public class TheApplication extends Application {
     private String peerNotifID;
     public GraphNode thisNode;
     public boolean serviceActive;
+
+    private Thread testingPeering; // Test Code
 
      // Adapted from:
      // https://stackoverflow.com/questions/2584401/how-to-add-bouncy-castle-algorithm-to-android/66323575#66323575
@@ -128,10 +129,36 @@ public class TheApplication extends Application {
 
     public void invokeService(boolean onion) {
         serviceActive = true;
+        // Test Code
+        if (testingPeering == null) {
+            testingPeering = new Thread(() -> {
+                Random r = new Random();
+                while (serviceActive) {
+                    try {
+                        Thread.sleep((5 + r.nextInt(55))*1000);
+                        byte[] rID = new byte[32];
+                        r.nextBytes(rID);
+                        PeerRequest req = new PeerRequest(rID);
+                        database.getPeerRequestDAO().addPeerRequest(req);
+                        showPeeringOperation(getApplicationContext(), req);
+                        sendBroadcast(new Intent(IntentActions.REFRESH));
+                    } catch (InterruptedException ignored) {
+                        return;
+                    }
+                }
+            });
+            testingPeering.start();
+        }
     }
 
     public void stopService() {
+        // Test Code
         serviceActive = false;
+        if (testingPeering != null) {
+            if (testingPeering.isAlive())
+                testingPeering.interrupt();
+            testingPeering = null;
+        }
         sendBroadcast(new Intent(IntentActions.REFRESH));
         // TODO: ^ Should be in the service
     }
@@ -175,7 +202,8 @@ public class TheApplication extends Application {
         if (peerNotifID == null || req == null)
             return;
         PendingIntent pIntent = PendingIntent.getActivity(context, 0,
-                getLaunchEditorIntent(context, FragmentIndicator.PeeringRequests, false, req.ID), PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_IMMUTABLE);
+                new Intent(context, MainActivity.class).putExtra("frag", FragmentIndicator.PeeringRequests.getID())
+                , PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_IMMUTABLE);
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, peerNotifID)
                 .setSmallIcon(R.drawable.network_peering).setContentTitle("Peering Request " + req.getCheckCode()).setContentText(req.ID).setAutoCancel(true).setContentIntent(pIntent);
         if (ActivityCompat.checkSelfPermission(this, "android.permission.POST_NOTIFICATIONS") == PackageManager.PERMISSION_GRANTED)
