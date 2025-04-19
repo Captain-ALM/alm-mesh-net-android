@@ -113,7 +113,7 @@ public class MainActivity extends AppCompatActivity {
         NavigationUI.setupWithNavController(navigationView, navController);
 
         // My code to navigate activity if returned to from editor
-        triggerNavigation(getIntent().getIntExtra("frag", 0));
+        triggerNavigation(getIntent().getIntExtra("frag", indicator.getID()));
         if (getIntent().getBooleanExtra("refresh", false))
             refresh(indicator);
     }
@@ -196,7 +196,11 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             if (Objects.equals(intent.getAction(), IntentActions.REFRESH)) {
-                triggerNavigation(intent.getIntExtra("frag", -1));
+                /// Humorous named intent extra
+                if (intent.getBooleanExtra("tescos", false))
+                    triggerNavigation(indicator.getID());
+                else
+                    triggerNavigation(intent.getIntExtra("frag", -1));
                 refresh(indicator);
             }
         }

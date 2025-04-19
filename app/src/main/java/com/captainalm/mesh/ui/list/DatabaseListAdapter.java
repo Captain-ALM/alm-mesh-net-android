@@ -19,6 +19,17 @@ public class DatabaseListAdapter extends ListAdapter {
     }
 
     @Override
+    protected String noItemsText() {
+        if (dbID == FragmentIndicator.AllowedNodeSignatureKeys) {
+            return "No Keys";
+        } else if (dbID == FragmentIndicator.PeeringRequests) {
+            return "No Requests";
+        } else {
+            return "No Nodes";
+        }
+    }
+
+    @Override
     public void refresh(boolean reset) {
         if (app != null) {
             items.clear();

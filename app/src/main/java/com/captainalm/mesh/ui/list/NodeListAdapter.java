@@ -24,6 +24,11 @@ public class NodeListAdapter extends ListAdapter implements IListClickHandler {
     }
 
     @Override
+    protected String noItemsText() {
+        return "No Nodes?";
+    }
+
+    @Override
     public void refresh(boolean reset) {
         if (reset)
             if (app == null)
@@ -44,6 +49,8 @@ public class NodeListAdapter extends ListAdapter implements IListClickHandler {
 
     @Override
     public void onItemClicked(int position) {
+        if (items.isEmpty())
+            return;
         parent = current;
         try {
             current = (Node) items.get(position);

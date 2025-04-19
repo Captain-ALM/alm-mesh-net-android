@@ -50,18 +50,27 @@ public abstract class ListAdapter extends RecyclerView.Adapter<ListAdapter.ViewH
 
     @Override
     public void onBindViewHolder(@NonNull ListAdapter.ViewHolder holder, int position) {
-        holder.idLabel.setText(items.get(position).ID);
-        holder.extraLabel.setText(items.get(position).extraData());
+        if (items.isEmpty()) {
+            holder.idLabel.setText("");
+            holder.extraLabel.setText(noItemsText());
+        } else {
+            holder.idLabel.setText(items.get(position).ID);
+            holder.extraLabel.setText(items.get(position).extraData());
+        }
     }
 
     @Override
     public int getItemCount() {
-        return items.size();
+        return (!items.isEmpty()) ? items.size() : 1;
     }
+
+    protected abstract String noItemsText();
 
     public abstract void refresh(boolean reset);
 
     public String itemIDAt(int index) {
+        if (items.isEmpty())
+            return null;
         try {
             return items.get(index).ID;
         } catch (NullPointerException | IndexOutOfBoundsException e) {

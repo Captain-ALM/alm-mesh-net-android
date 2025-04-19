@@ -3,6 +3,7 @@ package com.captainalm.mesh;
 import android.app.Application;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -170,16 +171,22 @@ public class TheApplication extends Application {
         if (ActivityCompat.checkSelfPermission(this, "android.permission.POST_NOTIFICATIONS") == PackageManager.PERMISSION_GRANTED)
             getSystemService(NotificationManager.class).notify(new Random().nextInt(8) + 100, builder.build());
     }
-    public void showPeeringOperation(PeerRequest req) {
+    public void showPeeringOperation(Context context, PeerRequest req) {
         if (peerNotifID == null || req == null)
             return;
+        PendingIntent pIntent = PendingIntent.getActivity(context, 0,
+                getLaunchEditorIntent(context, FragmentIndicator.PeeringRequests, false, req.ID), PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_IMMUTABLE);
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, peerNotifID)
-                .setSmallIcon(R.drawable.network_peering).setContentTitle("Peering Request " + req.getCheckCode()).setContentText(req.ID).setAutoCancel(true);
+                .setSmallIcon(R.drawable.network_peering).setContentTitle("Peering Request " + req.getCheckCode()).setContentText(req.ID).setAutoCancel(true).setContentIntent(pIntent);
         if (ActivityCompat.checkSelfPermission(this, "android.permission.POST_NOTIFICATIONS") == PackageManager.PERMISSION_GRANTED)
             getSystemService(NotificationManager.class).notify(99, builder.build());
     }
 
+    private Intent getLaunchEditorIntent(Context context, FragmentIndicator frag, boolean adding, String id) {
+        return new Intent(context, EditorActivity.class).putExtra("frag", frag.getID()).putExtra("adder", adding).putExtra("edit_id", id);
+    }
+
     public void launchEditor(Context context, FragmentIndicator frag, boolean adding, String id) {
-        context.startActivity(new Intent(context, EditorActivity.class).putExtra("frag", frag.getID()).putExtra("adder", adding).putExtra("edit_id", id));
+        context.startActivity(getLaunchEditorIntent(context, frag, adding, id));
     }
 }
