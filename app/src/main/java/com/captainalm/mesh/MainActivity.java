@@ -5,11 +5,16 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.net.VpnService;
 import android.os.Build;
 import android.os.Bundle;
 
 import com.google.android.material.navigation.NavigationView;
 
+import androidx.activity.result.ActivityResult;
+import androidx.activity.result.ActivityResultCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
@@ -37,6 +42,8 @@ public class MainActivity extends AppCompatActivity {
     private final Object refreshableLocker = new Object();
     private final List<IRefreshable> refreshables = new LinkedList<>();
 
+    private ActivityResultLauncher<Intent> vpnLauncher;
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
@@ -63,6 +70,15 @@ public class MainActivity extends AppCompatActivity {
         if (app == null)
             return;
 
+        if (vpnLauncher == null)
+            vpnLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
+                o -> {
+                    if (o.getResultCode() == MainActivity.RESULT_OK && app != null)
+                        app.invokeService(MainActivity.this);
+                    else
+                        refresh(FragmentIndicator.Unknown);
+                });
+
         // Template defined
         getLayoutInflater();
         binding = ActivityMainBinding.inflate(getLayoutInflater());
@@ -74,7 +90,7 @@ public class MainActivity extends AppCompatActivity {
             if (indicator == FragmentIndicator.AllowedNodes ||
             indicator == FragmentIndicator.AllowedNodeSignatureKeys ||
             indicator == FragmentIndicator.BlockedNodes) {
-                app.launchEditor(this, indicator, true, "");
+                app.launchEditor(MainActivity.this, indicator, true, "");
             }
         });
 
@@ -197,6 +213,16 @@ public class MainActivity extends AppCompatActivity {
             unregisterReceiver(intentReceiver);
             intentReceiverRegistered = false;
         }
+    }
+
+    public void startVPN(boolean onion) {
+        Intent vpnIntent = VpnService.prepare(this);
+        if (app != null)
+            app.onionSetup(onion);
+        if (vpnIntent == null && app != null)
+            app.invokeService(this);
+        else if (vpnIntent != null)
+            vpnLauncher.launch(vpnIntent);
     }
 
     private class RemoteIntentReceiver extends BroadcastReceiver {

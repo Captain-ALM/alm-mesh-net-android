@@ -1,5 +1,6 @@
 package com.captainalm.mesh;
 
+import android.app.Activity;
 import android.app.Application;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -7,8 +8,10 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.VpnService;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.room.Room;
@@ -103,8 +106,8 @@ public class TheApplication extends Application {
             database.getSettingsDAO().addSettings(this.settings);
         } else
             this.settings = settings.get(0);
-        cryptographyProvider.selfTest(this.settings.getPrivateKeyKEM(),
-                this.settings.getPrivateKeyDSA()); // Self test
+        //cryptographyProvider.selfTest(this.settings.getPrivateKeyKEM(),
+        //        this.settings.getPrivateKeyDSA()); // Self test
         setThisNodeFromSettings();
     }
 
@@ -134,12 +137,7 @@ public class TheApplication extends Application {
         setThisNodeFromSettings();
     }
 
-    public void invokeService(Context context, boolean onion) {
-        serviceActive = true;
-        if (settings == null) {
-            serviceActive = false;
-            return;
-        }
+    public void onionSetup(boolean onion) {
         if (onion) {
             KeyPair kem = Provider.generateMLKemKeyPair();
             if (kem != null)
@@ -152,6 +150,14 @@ public class TheApplication extends Application {
             this.settings.etherealPrivateKeyKEM = null;
             this.settings.etherealPrivateKeyDSA = null;
             database.getSettingsDAO().updateSettings(this.settings);
+        }
+    }
+
+    public void invokeService(Context context) {
+        serviceActive = true;
+        if (settings == null) {
+            serviceActive = false;
+            return;
         }
         startForegroundService(new Intent(context, MeshVpnService.class).setAction(IntentActions.START_VPN).putExtra("onion", true));
     }
@@ -225,9 +231,10 @@ public class TheApplication extends Application {
             return null;
         if (settingsPIntent == null)
             settingsPIntent = PendingIntent.getActivity(context, 0,
-                    new Intent(this, MainActivity.class).putExtra("frag", FragmentIndicator.Unknown.getID()), PendingIntent.FLAG_UPDATE_CURRENT);
+                    new Intent(this, MainActivity.class).putExtra("frag",
+                            FragmentIndicator.Unknown.getID()), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         return new NotificationCompat.Builder(context, vpnNotifID).setSmallIcon(R.drawable.network_accept).setContentTitle(getString(R.string.vpn_channel))
-                .setContentText(getString(resString) + ((extra == null) ? "" : extra)).setContentIntent(settingsPIntent);
+                .setContentText(getString(resString) + ((extra == null) ? "" : extra)).setContentIntent(settingsPIntent).setAutoCancel(true);
     }
 
     public String ipv4ToIP(byte[] addr) {
@@ -264,5 +271,12 @@ public class TheApplication extends Application {
             address += ":";
         }
         return address.substring(0, address.length() - 1) + "]";
+    }
+
+    public String ipv6HexToIPPure(String hex) {
+        String addr = ipv6HexToIP(hex);
+        if (addr.length() > 2)
+            return addr.substring(1, addr.length() - 1);
+        return addr;
     }
 }

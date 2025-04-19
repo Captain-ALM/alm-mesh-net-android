@@ -55,7 +55,8 @@ public class SettingsFragment extends Fragment implements IRefreshable {
         binding.switchEnabler.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (isChecked) {
                 save();
-                app.invokeService(container , binding.switchOnion.isChecked());
+                if (container instanceof MainActivity ma)
+                    ma.startVPN(binding.switchOnion.isChecked());
                 refresh();
             } else
                 app.stopService(container);
