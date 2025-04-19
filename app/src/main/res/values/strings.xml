@@ -23,6 +23,8 @@
     <string name="peer_channel_desc">Shows Peering Requests.</string>
     <string name="node_info_channel_desc">Shows Node Information</string>
     <string name="node_info_channel">Node Info</string>
+    <string name="vpn_channel">MeshNet VPN</string>
+    <string name="vpn_channel_desc">MeshNet VPN Foreground Notification</string>
     <string name="title_activity_editor">Adder / Viewer</string>
 
     <string name="check_code">Check Code</string>
@@ -50,4 +52,11 @@
     <string name="settings_encryption_mode">E2E is</string>
     <string name="settings_onion">Onion Mode</string>
     <string name="settings_new_circuit">New Circuit</string>
+    <string name="settings_bluetooth">Bluetooth Transport</string>
+    <string name="settings_wifi_direct">Wi-Fi Direct Transport</string>
+
+    <string name="vpn_starting">VPN Starting…</string>
+    <string name="vpn_stopping">VPN Stopping…</string>
+    <string name="vpn_running">VPN Active: </string>
+    <string name="vpn_stopped">VPN Inactive</string>
 </resources>

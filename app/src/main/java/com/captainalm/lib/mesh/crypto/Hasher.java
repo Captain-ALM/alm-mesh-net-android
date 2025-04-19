@@ -44,11 +44,10 @@ public class Hasher implements IHasher {
                 lDigest.set(MessageDigest.getInstance("SHA-256"));
             byte[] buff = new byte[8192];
             int n = inputStream.read(buff, 0, Math.min(i, 8192));
-            lDigest.get().update(buff, 0, n);
-            i -= n;
             while (n > 0) {
-                n = inputStream.read(buff, 0, Math.min(i, 8192));
                 lDigest.get().update(buff, 0, n);
+                i -= n;
+                n = inputStream.read(buff, 0, Math.min(i, 8192));
             }
             return lDigest.get().digest();
         } catch (NoSuchAlgorithmException e) {

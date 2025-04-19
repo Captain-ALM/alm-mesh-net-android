@@ -46,6 +46,7 @@ public class MainActivity extends AppCompatActivity {
         binding = null;
         mAppBarConfiguration = null;
         navController = null;
+        intentReceiver = null;
     }
 
     @Override
@@ -122,6 +123,7 @@ public class MainActivity extends AppCompatActivity {
             refresh(indicator);
             getIntent().removeExtra("refresh");
         }
+        sendBroadcast(new Intent(IntentActions.ACTIVITY_UP));
     }
 
     private void triggerNavigation(int frag) {

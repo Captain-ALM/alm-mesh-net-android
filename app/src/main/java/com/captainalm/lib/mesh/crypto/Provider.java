@@ -2,8 +2,11 @@ package com.captainalm.lib.mesh.crypto;
 
 import android.content.Context;
 
+import com.captainalm.lib.mesh.utils.ByteBufferOverwriteOutputStream;
 import com.captainalm.mesh.TheApplication;
 
+import org.bouncycastle.jcajce.interfaces.MLDSAPrivateKey;
+import org.bouncycastle.jcajce.interfaces.MLKEMPrivateKey;
 import org.bouncycastle.jcajce.provider.asymmetric.mldsa.BCMLDSAPrivateKey;
 import org.bouncycastle.jcajce.provider.asymmetric.mldsa.BCMLDSAPublicKey;
 import org.bouncycastle.jcajce.provider.asymmetric.mlkem.BCMLKEMPrivateKey;
@@ -18,6 +21,7 @@ import org.bouncycastle.pqc.crypto.mlkem.MLKEMParameters;
 import org.bouncycastle.pqc.crypto.mlkem.MLKEMPrivateKeyParameters;
 import org.bouncycastle.pqc.crypto.mlkem.MLKEMPublicKeyParameters;
 
+import java.io.ByteArrayInputStream;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -26,6 +30,7 @@ import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Random;
 
@@ -50,6 +55,47 @@ public class Provider implements IProvider {
             this.context = null;
         hasher = new Hasher(this.context);
 
+    }
+
+    public void selfTest(MLKEMPrivateKey kem, MLDSAPrivateKey dsa) {
+        if (kem == null || dsa == null)
+            return;
+        try {
+            IHasher hasher = this.GetHasherInstance();
+            ICryptor cryptor = this.GetCryptorInstance();
+            IUnwrapper unwrapper = this.GetUnwrapperInstance();
+            ISigner signer = this.GetSignerInstance();
+            Random random = new SecureRandom();
+            byte[] data = new byte[32768];
+            byte[] data2 = new byte[32768];
+            random.nextBytes(data);
+            random.nextBytes(data2);
+            byte[] dataHash = hasher.hash(data);
+            byte[] data2Hash = hasher.hashStream(new ByteArrayInputStream(data2), data2.length);
+            byte[][] sharedAndWrapped = unwrapper.setPublicKey(getMLKemPublicKeyBytes(kem.getPublicKey())).wrap(random);
+            byte[] key = sharedAndWrapped[0];
+            byte[] wrapped = sharedAndWrapped[1];
+            byte[] unwrapped = unwrapper.setPrivateKey(getMLKemPrivateKeyBytes(kem)).unwrap(wrapped);
+            if (!Arrays.equals(key, unwrapped))
+                throw new Exception("Unwrapped data not the same.");
+            byte[] encrypted = cryptor.setKey(key).encrypt(data);
+            if (!Arrays.equals(hasher.hash(cryptor.decrypt(encrypted)), dataHash))
+                throw new Exception("Decrypted data not the same.");
+            byte[] encrypted2 = new byte[32784];
+            ByteBufferOverwriteOutputStream os = new ByteBufferOverwriteOutputStream(encrypted2, 0, encrypted2.length, false);
+            cryptor.setKey(wrapped).encryptStream(new ByteArrayInputStream(data2), os);
+            byte[] decrypted = new byte[32768];
+            os = new ByteBufferOverwriteOutputStream(decrypted, 0, decrypted.length, false);
+            cryptor.decryptStream(new ByteArrayInputStream(encrypted2), os);
+            if (!Arrays.equals(hasher.hash(decrypted), data2Hash))
+                throw new Exception("Decrypted streamed data not the same.");
+            byte[] signature = signer.setPrivateKey(getMLDsaPrivateKeyBytes(dsa)).sign(new ByteArrayInputStream(dataHash));
+            if (!signer.setPublicKey(getMLDsaPublicKeyBytes(dsa.getPublicKey())).verify(dataHash, signature))
+                throw new Exception("Signature test failed.");
+        } catch (Exception e) {
+            if (context != null)
+                context.showException(e);
+        }
     }
 
     static { //Init all key pair generators.

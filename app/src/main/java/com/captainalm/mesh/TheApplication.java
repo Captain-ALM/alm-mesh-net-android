@@ -48,11 +48,11 @@ public class TheApplication extends Application {
     private String errorNotifID;
     private String peerNotifID;
     private String nodeInfoNotifID;
+    private String vpnNotifID;
+    private PendingIntent settingsPIntent;
     public GraphNode thisNode;
     public boolean firstStart = true;
     public boolean serviceActive;
-
-    private Thread testingPeering; // Test Code
 
      // Adapted from:
      // https://stackoverflow.com/questions/2584401/how-to-add-bouncy-castle-algorithm-to-android/66323575#66323575
@@ -79,11 +79,12 @@ public class TheApplication extends Application {
                     }
                 }
         ).build();
-        cryptographyProvider = new Provider(getApplicationContext());
+        cryptographyProvider = new Provider(this);
         authorizer = new Authorizer(database);
         errorNotifID = makeChannel(errorNotifID, NotificationManager.IMPORTANCE_MIN, getString(R.string.error_channel), getString(R.string.error_channel_desc));
         peerNotifID = makeChannel(peerNotifID, NotificationManager.IMPORTANCE_HIGH, getString(R.string.peer_channel), getString(R.string.peer_channel_desc));
         nodeInfoNotifID = makeChannel(nodeInfoNotifID, NotificationManager.IMPORTANCE_DEFAULT, getString(R.string.node_info_channel), getString(R.string.peer_channel_desc));
+        vpnNotifID = makeChannel(vpnNotifID, NotificationManager.IMPORTANCE_DEFAULT, getString(R.string.vpn_channel), getString(R.string.vpn_channel_desc));
         obtainSettings();
     }
 
@@ -102,6 +103,8 @@ public class TheApplication extends Application {
             database.getSettingsDAO().addSettings(this.settings);
         } else
             this.settings = settings.get(0);
+        cryptographyProvider.selfTest(this.settings.getPrivateKeyKEM(),
+                this.settings.getPrivateKeyDSA()); // Self test
         setThisNodeFromSettings();
     }
 
@@ -131,49 +134,40 @@ public class TheApplication extends Application {
         setThisNodeFromSettings();
     }
 
-    public void invokeService(boolean onion) {
+    public void invokeService(Context context, boolean onion) {
         serviceActive = true;
-        // Test Code
-        if (testingPeering == null) {
-            testingPeering = new Thread(() -> {
-                Random r = new Random();
-                while (serviceActive) {
-                    try {
-                        Thread.sleep((5 + r.nextInt(55))*1000);
-                        byte[] rID = new byte[32];
-                        r.nextBytes(rID);
-                        PeerRequest req = new PeerRequest(rID);
-                        database.getPeerRequestDAO().addPeerRequest(req);
-                        showPeeringOperation(getApplicationContext(), req);
-                        sendBroadcast(new Intent(IntentActions.REFRESH));
-                    } catch (InterruptedException ignored) {
-                        return;
-                    }
-                }
-            });
-            testingPeering.start();
+        if (settings == null) {
+            serviceActive = false;
+            return;
         }
+        if (onion) {
+            KeyPair kem = Provider.generateMLKemKeyPair();
+            if (kem != null)
+                this.settings.setEtherealPrivateKeyKEM((MLKEMPrivateKey) kem.getPrivate());
+            KeyPair dsa = Provider.generateMLDsaKeyPair();
+            if (dsa != null)
+                this.settings.setEtherealPrivateKeyDSA((MLDSAPrivateKey) dsa.getPrivate());
+            database.getSettingsDAO().updateSettings(this.settings);
+        } else {
+            this.settings.etherealPrivateKeyKEM = null;
+            this.settings.etherealPrivateKeyDSA = null;
+            database.getSettingsDAO().updateSettings(this.settings);
+        }
+        startForegroundService(new Intent(context, MeshVpnService.class).setAction(IntentActions.START_VPN).putExtra("onion", true));
     }
 
-    public void stopService() {
-        // Test Code
-        serviceActive = false;
-        if (testingPeering != null) {
-            if (testingPeering.isAlive())
-                testingPeering.interrupt();
-            testingPeering = null;
-        }
-        sendBroadcast(new Intent(IntentActions.REFRESH));
-        // TODO: ^ Should be in the service
+    public void stopService(Context context) {
+        startForegroundService(new Intent(context, MeshVpnService.class).setAction(IntentActions.STOP_VPN));
     }
 
     public void regenerateCircuit() {
-
+        sendBroadcast(new Intent(IntentActions.NEW_CIRCUIT));
     }
 
     private String makeChannel(String ID, int importance, String name, String desc) {
         if (ID == null)
-            ID = UUID.randomUUID().toString();
+            ID = name.replace(" ", "-");
+        //    ID = UUID.randomUUID().toString();
         NotificationChannel channel = new NotificationChannel(ID,
                 name, importance);
         channel.setDescription(desc);
@@ -224,6 +218,16 @@ public class TheApplication extends Application {
 
     public void launchEditor(Context context, FragmentIndicator frag, boolean adding, String id) {
         context.startActivity(getLaunchEditorIntent(context, frag, adding, id));
+    }
+
+    public NotificationCompat.Builder getVPNNotification(Context context, int resString, String extra) {
+        if (vpnNotifID == null)
+            return null;
+        if (settingsPIntent == null)
+            settingsPIntent = PendingIntent.getActivity(context, 0,
+                    new Intent(this, MainActivity.class).putExtra("frag", FragmentIndicator.Unknown.getID()), PendingIntent.FLAG_UPDATE_CURRENT);
+        return new NotificationCompat.Builder(context, vpnNotifID).setSmallIcon(R.drawable.network_accept).setContentTitle(getString(R.string.vpn_channel))
+                .setContentText(getString(resString) + ((extra == null) ? "" : extra)).setContentIntent(settingsPIntent);
     }
 
     public String ipv4ToIP(byte[] addr) {

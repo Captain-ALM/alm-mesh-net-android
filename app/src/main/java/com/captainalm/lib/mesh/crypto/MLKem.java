@@ -1,7 +1,8 @@
 package com.captainalm.lib.mesh.crypto;
 
-import org.bouncycastle.crypto.util.PrivateKeyFactory;
-import org.bouncycastle.crypto.util.PublicKeyFactory;
+import org.bouncycastle.crypto.SecretWithEncapsulation;
+import org.bouncycastle.pqc.crypto.util.PrivateKeyFactory;
+import org.bouncycastle.pqc.crypto.util.PublicKeyFactory;
 import org.bouncycastle.jcajce.provider.asymmetric.mlkem.BCMLKEMPrivateKey;
 import org.bouncycastle.pqc.crypto.mlkem.MLKEMExtractor;
 import org.bouncycastle.pqc.crypto.mlkem.MLKEMGenerator;
@@ -12,6 +13,7 @@ import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
+import java.util.Random;
 
 /**
  * Provides an ML-KEM unwrapper.
@@ -66,11 +68,12 @@ public class MLKem implements IUnwrapper {
     }
 
     @Override
-    public byte[] wrap(byte[] bytes) throws GeneralSecurityException {
-        if (bytes == null || publicKey.get() == null)
-            return new byte[1088];
+    public byte[][] wrap(Random rand) throws GeneralSecurityException {
+        if (!(rand instanceof SecureRandom) || publicKey.get() == null)
+            return new byte[][] {new byte[32], new byte[1088]};
         try {
-            return new MLKEMGenerator(new SecureRandom()).internalGenerateEncapsulated(PublicKeyFactory.createKey(publicKey.get().getEncoded()), bytes).getEncapsulation();
+            SecretWithEncapsulation data = new MLKEMGenerator((SecureRandom) rand).generateEncapsulated(PublicKeyFactory.createKey(publicKey.get().getEncoded()));
+            return new byte[][] {data.getSecret(), data.getEncapsulation()};
         } catch (IOException e) {
             throw new GeneralSecurityException(e);
         }

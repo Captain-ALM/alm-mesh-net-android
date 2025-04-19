@@ -1,12 +1,9 @@
 package com.captainalm.lib.mesh.crypto;
 
 import org.bouncycastle.crypto.CryptoException;
-import org.bouncycastle.crypto.util.PrivateKeyFactory;
-import org.bouncycastle.crypto.util.PublicKeyFactory;
+import org.bouncycastle.pqc.crypto.util.PrivateKeyFactory;
+import org.bouncycastle.pqc.crypto.util.PublicKeyFactory;
 import org.bouncycastle.jcajce.provider.asymmetric.mldsa.BCMLDSAPrivateKey;
-import org.bouncycastle.jcajce.provider.asymmetric.mlkem.BCMLKEMPrivateKey;
-import org.bouncycastle.pqc.crypto.mldsa.MLDSAParameters;
-import org.bouncycastle.pqc.crypto.mldsa.MLDSAPrivateKeyParameters;
 import org.bouncycastle.pqc.crypto.mldsa.MLDSASigner;
 
 import java.io.IOException;

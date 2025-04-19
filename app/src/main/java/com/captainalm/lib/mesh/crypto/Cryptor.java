@@ -145,8 +145,12 @@ public class Cryptor implements ICryptor {
         InputStream cis = new CipherInputStream(inputStream, getCipher(Cipher.DECRYPT_MODE, lIV));
         byte[] buff = new byte[(IV.get() == null) ? i - 16 : i];
         int idx = 0;
-        while (idx < i)
-            idx += cis.read(buff, idx, buff.length - idx);
+        while (idx < i) {
+            int n = cis.read(buff, idx, buff.length - idx);
+            if (n < 0)
+                break;
+            idx += n;
+        }
         return buff;
     }
 
