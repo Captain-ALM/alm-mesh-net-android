@@ -40,6 +40,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        if (app != null && isFinishing())
+            app.firstStart = true;
         app = null;
         binding = null;
         mAppBarConfiguration = null;
@@ -113,9 +115,13 @@ public class MainActivity extends AppCompatActivity {
         NavigationUI.setupWithNavController(navigationView, navController);
 
         // My code to navigate activity if returned to from editor
-        triggerNavigation(getIntent().getIntExtra("frag", indicator.getID()));
-        if (getIntent().getBooleanExtra("refresh", false))
+        triggerNavigation(getIntent().getIntExtra("frag", (app != null && app.firstStart) ? 0 : -1));
+        getIntent().removeExtra("frag");
+        app.firstStart = false;
+        if (getIntent().getBooleanExtra("refresh", false)) {
             refresh(indicator);
+            getIntent().removeExtra("refresh");
+        }
     }
 
     private void triggerNavigation(int frag) {

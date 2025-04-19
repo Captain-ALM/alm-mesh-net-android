@@ -48,6 +48,7 @@ public class TheApplication extends Application {
     private String errorNotifID;
     private String peerNotifID;
     public GraphNode thisNode;
+    public boolean firstStart = true;
     public boolean serviceActive;
 
     private Thread testingPeering; // Test Code
