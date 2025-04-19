@@ -47,6 +47,7 @@ public class TheApplication extends Application {
     public Settings settings;
     private String errorNotifID;
     private String peerNotifID;
+    private String nodeInfoNotifID;
     public GraphNode thisNode;
     public boolean firstStart = true;
     public boolean serviceActive;
@@ -61,6 +62,7 @@ public class TheApplication extends Application {
         Security.addProvider(new BouncyCastleProvider());
     }
 
+    // My code
     @Override
     public void onCreate() {
         super.onCreate();
@@ -79,8 +81,9 @@ public class TheApplication extends Application {
         ).build();
         cryptographyProvider = new Provider(getApplicationContext());
         authorizer = new Authorizer(database);
-        errorNotifID = makeErrorChannel(errorNotifID);
-        peerNotifID = makePeeringChannel(peerNotifID);
+        errorNotifID = makeChannel(errorNotifID, NotificationManager.IMPORTANCE_MIN, getString(R.string.error_channel), getString(R.string.error_channel_desc));
+        peerNotifID = makeChannel(peerNotifID, NotificationManager.IMPORTANCE_HIGH, getString(R.string.peer_channel), getString(R.string.peer_channel_desc));
+        nodeInfoNotifID = makeChannel(nodeInfoNotifID, NotificationManager.IMPORTANCE_DEFAULT, getString(R.string.node_info_channel), getString(R.string.peer_channel_desc));
         obtainSettings();
     }
 
@@ -168,21 +171,12 @@ public class TheApplication extends Application {
 
     }
 
-    private String makeErrorChannel(String ID) {
+    private String makeChannel(String ID, int importance, String name, String desc) {
         if (ID == null)
             ID = UUID.randomUUID().toString();
         NotificationChannel channel = new NotificationChannel(ID,
-                getString(R.string.error_channel), NotificationManager.IMPORTANCE_MIN);
-        channel.setDescription(getString(R.string.error_channel_desc));
-        getSystemService(NotificationManager.class).createNotificationChannel(channel);
-        return ID;
-    }
-    private String makePeeringChannel(String ID) {
-        if (ID == null)
-            ID = UUID.randomUUID().toString();
-        NotificationChannel channel = new NotificationChannel(ID,
-                getString(R.string.peer_channel), NotificationManager.IMPORTANCE_HIGH);
-        channel.setDescription(getString(R.string.peer_channel_desc));
+                name, importance);
+        channel.setDescription(desc);
         getSystemService(NotificationManager.class).createNotificationChannel(channel);
         return ID;
     }
@@ -199,6 +193,7 @@ public class TheApplication extends Application {
         if (ActivityCompat.checkSelfPermission(this, "android.permission.POST_NOTIFICATIONS") == PackageManager.PERMISSION_GRANTED)
             getSystemService(NotificationManager.class).notify(new Random().nextInt(8) + 100, builder.build());
     }
+
     public void showPeeringOperation(Context context, PeerRequest req) {
         if (peerNotifID == null || req == null)
             return;
@@ -211,11 +206,59 @@ public class TheApplication extends Application {
             getSystemService(NotificationManager.class).notify(99, builder.build());
     }
 
+    public void showNodeInfo(Node node) {
+        if (nodeInfoNotifID == null || node == null)
+            return;
+        GraphNode copy = node.getGraphNodeCopy();
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, nodeInfoNotifID)
+                .setSmallIcon(R.drawable.network).setContentTitle(node.ID).setContentText(ipv4ToIP(copy.getIPv4Address()) + "\n" + ipv6HexToIP(copy.getIPv6AddressString()))
+                .setStyle(new NotificationCompat.BigTextStyle().bigText(node.ID + "\n" + node.getCheckCode() + "\n" +
+                        ipv4ToIP(copy.getIPv4Address()) + "\n" + ipv6HexToIP(copy.getIPv6AddressString()))).setAutoCancel(true);
+        if (ActivityCompat.checkSelfPermission(this, "android.permission.POST_NOTIFICATIONS") == PackageManager.PERMISSION_GRANTED)
+            getSystemService(NotificationManager.class).notify(98, builder.build());
+    }
+
     private Intent getLaunchEditorIntent(Context context, FragmentIndicator frag, boolean adding, String id) {
         return new Intent(context, EditorActivity.class).putExtra("frag", frag.getID()).putExtra("adder", adding).putExtra("edit_id", id);
     }
 
     public void launchEditor(Context context, FragmentIndicator frag, boolean adding, String id) {
         context.startActivity(getLaunchEditorIntent(context, frag, adding, id));
+    }
+
+    public String ipv4ToIP(byte[] addr) {
+        return  ((addr[0] < 0) ? (int) addr[0] + 128 : addr[0]) + "." +
+                ((addr[1] < 0) ? (int) addr[1] + 128 : addr[1]) + "." +
+                ((addr[2] < 0) ? (int) addr[2] + 128 : addr[2]) + "." +
+                ((addr[3] < 0) ? (int) addr[3] + 128 : addr[3]);
+    }
+
+    public String ipv6HexToIP(String hex) {
+        String address = "[";
+        int remaining = hex.length();
+        int pos = 0;
+        int remainder = 0;
+        while (remaining > 0) {
+            if (remaining > 3) {
+                address += hex.substring(pos, pos + 4) + ":";
+                pos += 4;
+                remaining -= 4;
+            } else {
+                address += hex.substring(pos, pos + remaining);
+                pos += remaining;
+                remainder = 4 - remaining;
+                if (remainder == 0)
+                    address += ":";
+                remaining = 0;
+            }
+        }
+        if (remainder > 0) {
+            while (remainder > 0) {
+                remainder--;
+                address += "0";
+            }
+            address += ":";
+        }
+        return address.substring(0, address.length() - 1) + "]";
     }
 }

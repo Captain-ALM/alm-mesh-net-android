@@ -62,4 +62,18 @@ public class NodeListAdapter extends ListAdapter implements IListClickHandler {
             refresh(true);
         }
     }
+
+    @Override
+    public boolean onItemLongClicked(int position) {
+        if (items.isEmpty())
+            return false;
+        try {
+            if (app != null)
+                app.showNodeInfo((Node) items.get(position));
+            return true;
+        } catch (IndexOutOfBoundsException e) {
+            app.showException(e);
+        }
+        return false;
+    }
 }

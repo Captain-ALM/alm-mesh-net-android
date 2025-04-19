@@ -2,7 +2,9 @@ package com.captainalm.mesh;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.Editable;
 import android.text.InputType;
+import android.text.TextWatcher;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -100,6 +102,8 @@ public class EditorActivity extends AppCompatActivity {
             }
         }
 
+        dataBox.setTextIsSelectable(true);
+
         if (obj == null) {
             removeButton.setOnClickListener(v -> switchToMain());
             closeButton.setOnClickListener(v -> switchToMain());
@@ -120,9 +124,35 @@ public class EditorActivity extends AppCompatActivity {
                     obj.ID = "";
                 if (obj.valid()) {
                     switch (user) {
-                        case AllowedNodes -> db.getAllowedNodeDAO().addAllowedNode((AllowedNode) obj);
-                        case BlockedNodes -> db.getBlockedNodeDAO().addBlockedNode((BlockedNode) obj);
-                        case AllowedNodeSignatureKeys -> db.getAllowedSignatureDAO().addAllowedSignature((AllowedSignature) obj);
+                        case AllowedNodes -> {
+                            if (db.getBlockedNodeDAO().getBlockedNode(obj.ID) == null) {
+                                db.getAllowedNodeDAO().addAllowedNode((AllowedNode) obj);
+                                if (db.getPeerRequestDAO().getPeerRequest(obj.ID) != null)
+                                    db.getPeerRequestDAO().removePeerRequest(new PeerRequest(obj.getID()));
+                                if (app != null)
+                                    app.sendBroadcast(new Intent(IntentActions.PURGE_BLOCKED));
+                            } else {
+                                Snackbar.make(v, "Node Blocked Already!", Snackbar.LENGTH_LONG).setAnchorView(R.id.buttonActionClose).setAction("Entry Issue", null).show();
+                                return;
+                            }
+                        }
+                        case BlockedNodes -> {
+                            if (db.getAllowedNodeDAO().getAllowedNode(obj.ID) == null) {
+                                db.getBlockedNodeDAO().addBlockedNode((BlockedNode) obj);
+                                if (db.getPeerRequestDAO().getPeerRequest(obj.ID) != null)
+                                    db.getPeerRequestDAO().removePeerRequest(new PeerRequest(obj.getID()));
+                                if (app != null)
+                                    app.sendBroadcast(new Intent(IntentActions.PURGE_BLOCKED));
+                            } else {
+                                Snackbar.make(v, "Node Allowed Already!", Snackbar.LENGTH_LONG).setAnchorView(R.id.buttonActionClose).setAction("Entry Issue", null).show();
+                                return;
+                            }
+                        }
+                        case AllowedNodeSignatureKeys -> {
+                            db.getAllowedSignatureDAO().addAllowedSignature((AllowedSignature) obj);
+                            if (app != null)
+                                app.sendBroadcast(new Intent(IntentActions.PURGE_BLOCKED));
+                        }
                     }
                     switchToMain();
                 } else if (app != null)
@@ -137,14 +167,20 @@ public class EditorActivity extends AppCompatActivity {
                 TheDatabase db = app.database;
                 removeButton.setText(R.string.deny);
                 removeButton.setOnClickListener(v -> {
-                    db.getBlockedNodeDAO().addBlockedNode(new BlockedNode(obj.getID()));
+                    if (db.getAllowedNodeDAO().getAllowedNode(obj.ID) == null)
+                        db.getBlockedNodeDAO().addBlockedNode(new BlockedNode(obj.getID()));
                     db.getPeerRequestDAO().removePeerRequest((PeerRequest) obj);
+                    if (app != null)
+                        app.sendBroadcast(new Intent(IntentActions.PURGE_BLOCKED));
                     switchToMain();
                 });
                 closeButton.setText(R.string.allow);
                 closeButton.setOnClickListener(v -> {
-                    db.getAllowedNodeDAO().addAllowedNode(new AllowedNode(obj.getID()));
+                    if (db.getBlockedNodeDAO().getBlockedNode(obj.ID) == null)
+                        db.getAllowedNodeDAO().addAllowedNode(new AllowedNode(obj.getID()));
                     db.getPeerRequestDAO().removePeerRequest((PeerRequest) obj);
+                    if (app != null)
+                        app.sendBroadcast(new Intent(IntentActions.PURGE_BLOCKED));
                     switchToMain();
                 });
             } else {
@@ -156,12 +192,46 @@ public class EditorActivity extends AppCompatActivity {
                         case BlockedNodes -> db.getBlockedNodeDAO().removeBlockedNode((BlockedNode) obj);
                         case AllowedNodeSignatureKeys -> db.getAllowedSignatureDAO().removeAllowedSignature((AllowedSignature) obj);
                     }
+                    if (app != null)
+                        app.sendBroadcast(new Intent(IntentActions.PURGE_BLOCKED));
                     switchToMain();
                 });
                 closeButton.setText(R.string.close);
                 closeButton.setOnClickListener(v -> switchToMain());
             }
+
+            idBox.addTextChangedListener(new TextWatcher() {
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                }
+
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) {
+                }
+
+                @Override
+                public void afterTextChanged(Editable s) {
+                    if (obj != null && !s.toString().equals(obj.ID))
+                        idBox.setText(obj.ID);
+                }
+            });
         }
+
+        dataBox.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                if (obj != null && !s.toString().equals(obj.extraData()))
+                    dataBox.setText(obj.extraData());
+            }
+        });
     }
 
     private String headerPrefix(boolean adding) {

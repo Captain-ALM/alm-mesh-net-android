@@ -11,4 +11,5 @@ public class IntentActions {
     public static final String STOP_VPN = "com.captainalm.mesh.VPNSTOP";
     public static final String NEW_CIRCUIT = "com.captainalm.mesh.NEWCIRCUIT";
     public static final String ACTIVITY_UP = "com.captainalm.mesh.RELAUNCHED";
+    public static final String PURGE_BLOCKED = "com.captainalm.mesh.PURGE";
 }

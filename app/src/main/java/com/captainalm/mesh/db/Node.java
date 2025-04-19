@@ -62,4 +62,9 @@ public class Node extends BaseIDEntity {
     public String extraData() {
         return ((isGateway == 1) ? "G" : "") + ((hasEncryption == 1 ? "E" : ""));
     }
+
+    @Ignore
+    public GraphNode getGraphNodeCopy() {
+        return new GraphNode(BytesToHex.hexToBytes(this.ID));
+    }
 }

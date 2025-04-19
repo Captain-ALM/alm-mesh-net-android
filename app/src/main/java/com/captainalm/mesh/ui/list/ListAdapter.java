@@ -95,6 +95,14 @@ public abstract class ListAdapter extends RecyclerView.Adapter<ListAdapter.ViewH
                         cHandler.onItemClicked(pos);
                 }
             });
+            itemView.setOnLongClickListener(v -> {
+                if (cHandler != null) {
+                    int pos = getAdapterPosition();
+                    if (pos != RecyclerView.NO_POSITION)
+                        return cHandler.onItemLongClicked(pos);
+                }
+                return false;
+            });
         }
     }
 }

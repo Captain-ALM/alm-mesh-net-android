@@ -21,7 +21,9 @@
     <string name="error_channel_desc">Shows Exceptions.</string>
     <string name="peer_channel">Peering Request Channel</string>
     <string name="peer_channel_desc">Shows Peering Requests.</string>
-    <string name="title_activity_editor">EditorActivity</string>
+    <string name="node_info_channel_desc">Shows Node Information</string>
+    <string name="node_info_channel">Node Info</string>
+    <string name="title_activity_editor">Adder / Viewer</string>
 
     <string name="check_code">Check Code</string>
     <string name="editor_allowed_node">Allowed Node</string>

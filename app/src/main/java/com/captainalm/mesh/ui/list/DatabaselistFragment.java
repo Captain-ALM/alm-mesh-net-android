@@ -24,6 +24,11 @@ public abstract class DatabaselistFragment extends ListFragment implements IList
     }
 
     @Override
+    public boolean onItemLongClicked(int position) {
+        return false;
+    }
+
+    @Override
     protected ListAdapter getAdapter(Context context) {
         return new DatabaseListAdapter(context, this, fragmentIndicator);
     }

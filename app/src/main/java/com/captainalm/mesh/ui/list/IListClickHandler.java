@@ -7,4 +7,5 @@ package com.captainalm.mesh.ui.list;
  */
 public interface IListClickHandler {
     void onItemClicked(int position);
+    boolean onItemLongClicked(int position);
 }

@@ -76,8 +76,8 @@ public class SettingsFragment extends Fragment implements IRefreshable {
         Node c = new Node(app.thisNode);
         binding.textViewSettingsCheckCode.setText(Integer.toString(c.getCheckCode()));
         binding.textViewSettingsID.setText(c.ID);
-        binding.textViewSettingsIPv4.setText(ipv4ToIP(app.thisNode.getIPv4Address()));
-        binding.textViewSettingsIPv6.setText(ipv6HexToIP(app.thisNode.getIPv6AddressString()));
+        binding.textViewSettingsIPv4.setText(app.ipv4ToIP(app.thisNode.getIPv4Address()));
+        binding.textViewSettingsIPv6.setText(app.ipv6HexToIP(app.thisNode.getIPv6AddressString()));
         binding.switchEnabler.setChecked(app.serviceActive);
         binding.editTextNumberPacketCache.setText(Integer.toString(app.settings.packetChargeSize));
         binding.editTextNumberMaxTTL.setText(Integer.toString(app.settings.maxTTL));
@@ -99,41 +99,6 @@ public class SettingsFragment extends Fragment implements IRefreshable {
         binding.switchOnion.setEnabled(!app.serviceActive);
     }
 
-    private String ipv4ToIP(byte[] addr) {
-        return  ((addr[0] < 0) ? (int) addr[0] + 128 : addr[0]) + "." +
-                ((addr[1] < 0) ? (int) addr[1] + 128 : addr[1]) + "." +
-                ((addr[2] < 0) ? (int) addr[2] + 128 : addr[2]) + "." +
-                ((addr[3] < 0) ? (int) addr[3] + 128 : addr[3]);
-    }
-
-    private String ipv6HexToIP(String hex) {
-        String address = "[";
-        int remaining = hex.length();
-        int pos = 0;
-        int remainder = 0;
-        while (remaining > 0) {
-            if (remaining > 3) {
-                address += hex.substring(pos, pos + 4) + ":";
-                pos += 4;
-                remaining -= 4;
-            } else {
-                address += hex.substring(pos, pos + remaining);
-                pos += remaining;
-                remainder = 4 - remaining;
-                if (remainder == 0)
-                    address += ":";
-                remaining = 0;
-            }
-        }
-        if (remainder > 0) {
-            while (remainder > 0) {
-                remainder--;
-                address += "0";
-            }
-            address += ":";
-        }
-        return address.substring(0, address.length() - 1) + "]";
-    }
     private void save() {
         if (app == null || binding == null || app.settings == null || app.serviceActive)
             return;

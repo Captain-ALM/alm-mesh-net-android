@@ -20,6 +20,8 @@ public final class Authorizer implements IPeerAuthorizer {
     public boolean authorize(byte[] ID, byte[] recommendationPubKey) {
         if (ID == null)
             return false;
+        if (theDatabase.getBlockedNodeDAO().getBlockedNode(BytesToHex.bytesToHex(ID)) != null)
+            return false;
         if (theDatabase.getAllowedNodeDAO().getAllowedNode(BytesToHex.bytesToHex(ID)) != null)
             return true;
         if (recommendationPubKey == null)

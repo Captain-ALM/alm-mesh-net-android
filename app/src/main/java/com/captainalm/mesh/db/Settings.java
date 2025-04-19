@@ -51,6 +51,9 @@ public class Settings {
     @ColumnInfo(name = "gateway_on")
     public int gatewayOn;
 
+    @ColumnInfo(name = "transports")
+    public int transports;
+
     @Ignore
     public String[] getExcludedAddresses() {
         return excludedAddresses.split(";");
@@ -138,5 +141,32 @@ public class Settings {
     @Ignore
     public boolean e2eIgnoreNonEncryptedPackets() {
         return encryptionMode > 2;
+    }
+
+    @Ignore
+    public void setWiFiDirect(boolean enabled) {
+        if (enabled)
+            transports |= 1 << 1;
+        else
+            transports &= ~(1 << 1);
+
+    }
+
+    @Ignore
+    public void setBluetooth(boolean enabled) {
+        if (enabled)
+            transports |= 1 << 2;
+        else
+            transports &= ~(1 << 2);
+    }
+
+    @Ignore
+    public boolean enabledWiFiDirect() {
+        return ((transports >> 1) & 1) == 1;
+    }
+
+    @Ignore
+    public boolean enabledBluetooth() {
+        return ((transports >> 2) & 1) == 1;
     }
 }
