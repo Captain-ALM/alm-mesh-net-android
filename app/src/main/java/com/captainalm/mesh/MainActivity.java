@@ -9,8 +9,11 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.net.VpnService;
+import android.net.wifi.WifiManager;
+import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
 
 import com.google.android.material.navigation.NavigationView;
 
@@ -46,12 +49,16 @@ public class MainActivity extends AppCompatActivity {
 
     private ActivityResultLauncher<Intent> vpnLauncher;
     private ActivityResultLauncher<Intent> bluetoothEnable;
+    private ActivityResultLauncher<Intent> wifiDirectEnable;
     private ActivityResultLauncher<Intent> bluetoothDiscover;
-    private boolean discoveringBluetooth = false;
+    private ActivityResultLauncher<String> wifiDirectPermissionLauncher;
+    private ActivityResultLauncher<String[]> bluetoothPermissionLauncher;
+    private ActivityResultLauncher<String> locationWifiDirectPermissionLauncher;
+    private ActivityResultLauncher<String> blocationWifiDirectPermissionLauncher;
+    private ActivityResultLauncher<String> locationBluetoothPermissionLauncher;
+    private ActivityResultLauncher<String> blocationBluetoothPermissionLauncher;
+    //private boolean discoveringBluetooth = false;
     private boolean discoveringP2P = false;
-    private boolean canRegisterBluetoothProtected = true;
-    private boolean intentReceiverBluetoothRegistered;
-    private RemoteIntentReceiver intentReceiverBluetooth;
 
     @Override
     protected void onDestroy() {
@@ -63,7 +70,6 @@ public class MainActivity extends AppCompatActivity {
         mAppBarConfiguration = null;
         navController = null;
         intentReceiver = null;
-        intentReceiverBluetooth = null;
     }
 
     @Override
@@ -76,7 +82,6 @@ public class MainActivity extends AppCompatActivity {
             app = ta;
 
         intentReceiver = new RemoteIntentReceiver();
-        intentReceiverBluetooth = new RemoteIntentReceiver();
 
         if (app == null)
             return;
@@ -89,21 +94,76 @@ public class MainActivity extends AppCompatActivity {
                     else
                         refresh(FragmentIndicator.Unknown);
                 });
+
+        if (wifiDirectPermissionLauncher == null)
+            wifiDirectPermissionLauncher = registerForActivityResult(new ActivityResultContracts.RequestPermission(),
+                    o -> {
+                            if (o)
+                                triggerLocationPermission(8081, true);
+                            else
+                                triggerPostPermissionsFailure(8081);
+                    });
+        if (bluetoothPermissionLauncher == null)
+            bluetoothPermissionLauncher = registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(),
+        o -> {
+                for (boolean b : o.values())
+                    if (!b) {
+                        triggerPostPermissionsFailure(8080);
+                        return;
+                    }
+                triggerLocationPermission(8080, true);
+        });
+
+        if (locationWifiDirectPermissionLauncher == null)
+            locationWifiDirectPermissionLauncher = registerForActivityResult(new ActivityResultContracts.RequestPermission(),
+                    o -> {
+                        if (o)
+                            triggerBLocationPermission(8081, true);
+                        else
+                            triggerPostPermissionsFailure(8081);
+                    });
+        if (locationBluetoothPermissionLauncher == null)
+            locationBluetoothPermissionLauncher = registerForActivityResult(new ActivityResultContracts.RequestPermission(),
+                    o -> {
+                        if (o)
+                            triggerBLocationPermission(8080, true);
+                        else
+                            triggerPostPermissionsFailure(8080);
+                    });
+
+        if (blocationWifiDirectPermissionLauncher == null)
+            blocationWifiDirectPermissionLauncher = registerForActivityResult(new ActivityResultContracts.RequestPermission(),
+                    o -> {
+                        if (o)
+                            triggerPostPermissions(8081, true);
+                        else
+                            triggerPostPermissionsFailure(8081);
+                    });
+        if (blocationBluetoothPermissionLauncher == null)
+            blocationBluetoothPermissionLauncher = registerForActivityResult(new ActivityResultContracts.RequestPermission(),
+                    o -> {
+                        if (o)
+                            triggerPostPermissions(8080, true);
+                        else
+                            triggerPostPermissionsFailure(8080);
+                    });
+
         if (bluetoothEnable == null)
             bluetoothEnable = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
                     o -> {
                 if (o.getResultCode() == MainActivity.RESULT_CANCELED && app != null) {
-                    app.settings.setBluetooth(false);
-                    refresh(FragmentIndicator.Unknown);
+                    triggerPostPermissionsFailure(8080);
                 }
                     });
         if (bluetoothDiscover == null)
             bluetoothDiscover = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
+                    o -> {});
+
+        if (wifiDirectEnable == null)
+            wifiDirectEnable = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
                     o -> {
-                if (o.getResultCode() == MainActivity.RESULT_CANCELED) {
-                    discoveringBluetooth = false;
-                    refresh(FragmentIndicator.Unknown);
-                }
+                        if (app != null && !app.getWiFiEnabled())
+                            triggerPostPermissionsFailure(8081);
                     });
 
         // Template defined
@@ -221,19 +281,9 @@ public class MainActivity extends AppCompatActivity {
         if (!intentReceiverRegistered) {
             IntentFilter filter = new IntentFilter(IntentActions.REFRESH);
             filter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
+            filter.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION);
             intentReceiver.register(filter);
             intentReceiverRegistered = true;
-        }
-        registerProtectedBluetooth(false);
-    }
-
-    private void registerProtectedBluetooth(boolean override) {
-        if (!intentReceiverBluetoothRegistered && (canRegisterBluetoothProtected || override)) {
-            IntentFilter filter = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
-            intentReceiverBluetooth.register(filter);
-            intentReceiverBluetoothRegistered = true;
-            if (override)
-                canRegisterBluetoothProtected = true;
         }
     }
 
@@ -243,28 +293,6 @@ public class MainActivity extends AppCompatActivity {
         if (intentReceiverRegistered) {
             intentReceiver.unregister();
             intentReceiverRegistered = false;
-        }
-        if (intentReceiverBluetoothRegistered && canRegisterBluetoothProtected) {
-            intentReceiverBluetooth.unregister();
-            intentReceiverBluetoothRegistered = false;
-        }
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == 8080) { // Bluetooth
-            boolean fine = grantResults.length > 0;
-            for (int c : grantResults)
-                fine = fine && (c == PackageManager.PERMISSION_GRANTED);
-            if (fine)
-                triggerBluetoothEnable();
-            else {
-                app.settings.setBluetooth(false);
-                refresh(FragmentIndicator.Unknown);
-            }
-        } else if (requestCode == 8081) { // Wi-Fi Direct
-
         }
     }
 
@@ -278,7 +306,7 @@ public class MainActivity extends AppCompatActivity {
             vpnLauncher.launch(vpnIntent);
     }
 
-    public void triggerBluetoothEnable() {
+    private boolean triggerBluetoothPermissions() {
         List<String> perms = new LinkedList<>();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             if (checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED)
@@ -288,33 +316,101 @@ public class MainActivity extends AppCompatActivity {
             if (checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED)
                 perms.add(Manifest.permission.BLUETOOTH_CONNECT);
         }
-        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                if (checkSelfPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION) != PackageManager.PERMISSION_GRANTED)
-                    perms.add(Manifest.permission.ACCESS_BACKGROUND_LOCATION);
+        if (!perms.isEmpty()) {
+            bluetoothPermissionLauncher.launch(perms.toArray(new String[0]));
+            return false;
+        }
+        else
+            return triggerLocationPermission(8080, false);
+    }
+
+    private boolean triggerWiFiDirectPermissions() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(Manifest.permission.NEARBY_WIFI_DEVICES) != PackageManager.PERMISSION_GRANTED) {
+                wifiDirectPermissionLauncher.launch(Manifest.permission.NEARBY_WIFI_DEVICES);
+                return false;
             }
-            if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)
-                perms.add(Manifest.permission.ACCESS_FINE_LOCATION);
         }
-        if (!perms.isEmpty())
-            requestPermissions(perms.toArray(new String[0]), 8080);
-        else {
-            registerProtectedBluetooth(true);
-            bluetoothEnable.launch(new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE));
+        return triggerLocationPermission(8081, false);
+    }
+
+    private boolean triggerLocationPermission(int mode, boolean trigger) {
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2) {
+            if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                ((mode == 8080) ? locationBluetoothPermissionLauncher : locationWifiDirectPermissionLauncher).launch(Manifest.permission.ACCESS_FINE_LOCATION);
+                return false;
+            }
         }
+        return triggerBLocationPermission(mode, trigger);
+    }
+
+    private boolean triggerBLocationPermission(int mode, boolean trigger) {
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            if (checkSelfPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                ((mode == 8080) ? blocationBluetoothPermissionLauncher : blocationWifiDirectPermissionLauncher).launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION);
+                return false;
+            }
+        }
+        triggerPostPermissions(mode, trigger);
+        return true;
+    }
+
+    private void triggerPostPermissionsFailure(int mode) {
+        if (mode == 8080)
+            app.settings.setBluetooth(false);
+        else
+            app.settings.setWiFiDirect(false);
+        refresh(FragmentIndicator.Unknown);
+    }
+
+    private void triggerPostPermissions(int mode ,boolean trigger) {
+        if (mode == 8080) {
+            app.bluetoothAuthority = true;
+            if (trigger)
+                triggerBluetoothEnable();
+        } else {
+            app.wifiDirectAuthority = true;
+            if (trigger)
+                triggerWiFiDirectEnable();
+        }
+    }
+
+    public void triggerWiFiDirectEnable() {
+        if (triggerWiFiDirectPermissions()) {
+            if (!app.getWiFiEnabled()) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
+                    wifiDirectEnable.launch(new Intent(Settings.Panel.ACTION_INTERNET_CONNECTIVITY));
+                else {
+                    try {
+                        if (getSystemService(Context.WIFI_SERVICE) instanceof WifiManager wm)
+                            wm.setWifiEnabled(true);
+                    } catch (RuntimeException e) {
+                        app.showException(e);
+                    }
+                }
+            }
+        } else {
+            triggerPostPermissionsFailure(8081);
+        }
+    }
+
+    public void triggerBluetoothEnable() {
+        if (triggerBluetoothPermissions()) {
+            if (!app.getBluetoothEnabled())
+                bluetoothEnable.launch(new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE));
+        } else
+            triggerPostPermissionsFailure(8080);
     }
 
     public void triggerBluetoothDiscoverable() {
-        if (!app.getBluetoothEnabled() || !canRegisterBluetoothProtected) {
+        if (!app.getBluetoothEnabled() || !app.bluetoothAuthority)
             refresh(FragmentIndicator.Unknown);
-        } else {
-            discoveringBluetooth = true;
+        else
             bluetoothDiscover.launch(new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 60));
-        }
     }
 
     public boolean isDiscovering() {
-        return discoveringBluetooth || discoveringP2P;
+        return discoveringP2P;
     }
 
     private class RemoteIntentReceiver extends BroadcastReceiver {
@@ -328,9 +424,8 @@ public class MainActivity extends AppCompatActivity {
                 else
                     triggerNavigation(intent.getIntExtra("frag", -1));
                 refresh(indicator);
-            } else if (BluetoothAdapter.ACTION_STATE_CHANGED.equals(intent.getAction())) {
-                refresh(FragmentIndicator.Unknown);
-            } else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(intent.getAction())) {
+            } else if (BluetoothAdapter.ACTION_STATE_CHANGED.equals(intent.getAction())
+            || WifiManager.WIFI_STATE_CHANGED_ACTION.equals(intent.getAction())) {
                 refresh(FragmentIndicator.Unknown);
             }
         }

@@ -9,6 +9,8 @@ import android.bluetooth.BluetoothManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.wifi.WifiManager;
+import android.net.wifi.p2p.WifiP2pManager;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
@@ -58,7 +60,15 @@ public class TheApplication extends Application {
     public boolean serviceActive;
     private BluetoothManager bManage;
     private BluetoothAdapter bAdapter;
+
+    private WifiP2pManager wp2pManager;
+    private WifiManager wManager;
+    public boolean bluetoothAuthority;
+    public boolean wifiDirectAuthority;
     private final Object slockBluetooth = new Object();
+    private final Object slockWifi = new Object();
+
+    private final Object slockWifiP2P = new Object();
 
      // Adapted from:
      // https://stackoverflow.com/questions/2584401/how-to-add-bouncy-castle-algorithm-to-android/66323575#66323575
@@ -322,5 +332,29 @@ public class TheApplication extends Application {
     public boolean getBluetoothEnabled() {
         BluetoothAdapter bluetoothAdapter = getBluetoothAdapter();
         return bluetoothAdapter != null && bluetoothAdapter.isEnabled();
+    }
+
+    public WifiManager getWiFiManager() {
+        synchronized (slockWifi) {
+            if (wManager == null && getSystemService(Context.WIFI_SERVICE) instanceof WifiManager wm)
+                wManager = wm;
+        }
+        return wManager;
+    }
+
+    public boolean getWiFiEnabled() {
+        if (wManager == null)
+            getWiFiManager();
+        synchronized (slockWifi) {
+            return wManager.isWifiEnabled();
+        }
+    }
+
+    public WifiP2pManager getWiFiP2PManager() {
+        synchronized (slockWifiP2P) {
+            if (wp2pManager == null && getSystemService(Context.WIFI_P2P_SERVICE) instanceof WifiP2pManager wpm)
+                wp2pManager = wpm;
+        }
+        return wp2pManager;
     }
 }

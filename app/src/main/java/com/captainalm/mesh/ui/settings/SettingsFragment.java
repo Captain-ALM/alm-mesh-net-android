@@ -1,6 +1,5 @@
 package com.captainalm.mesh.ui.settings;
 
-import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
@@ -18,7 +17,6 @@ import com.captainalm.mesh.MainActivity;
 import com.captainalm.mesh.TheApplication;
 import com.captainalm.mesh.databinding.FragmentSettingsBinding;
 import com.captainalm.mesh.db.Node;
-import com.google.android.material.snackbar.Snackbar;
 
 /**
  * Provides a Settings fragment.
@@ -56,13 +54,19 @@ public class SettingsFragment extends Fragment implements IRefreshable {
         if (app == null || binding == null || container == null)
             return;
         binding.switchEnabler.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (isChecked) {
-                save();
-                if (container instanceof MainActivity ma)
-                    ma.startVPN(binding.switchOnion.isChecked());
-                refresh();
-            } else
-                app.stopService(container);
+            if (container instanceof MainActivity ma) {
+                if (isChecked) {
+                    save();
+                    if (app.settings.enabledBluetooth() && !app.bluetoothAuthority)
+                        ma.triggerBluetoothEnable();
+                    else if (app.settings.enabledWiFiDirect() && !app.wifiDirectAuthority)
+                        ma.triggerWiFiDirectEnable();
+                    else
+                        ma.startVPN(binding.switchOnion.isChecked());
+                    refresh();
+                } else
+                    app.stopService(container);
+            }
         });
         binding.buttonSettingsNewKeys.setOnClickListener(v -> {
             app.regenerateKeys();
@@ -80,19 +84,23 @@ public class SettingsFragment extends Fragment implements IRefreshable {
             refreshAddresses();
         });
         binding.switchBluetooth.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (isChecked && !app.getBluetoothEnabled() && container instanceof MainActivity ma) {
+            if (isChecked && (!app.getBluetoothEnabled() || !app.bluetoothAuthority) && container instanceof MainActivity ma) {
                 save();
                 ma.triggerBluetoothEnable();
             }
         });
+        binding.switchWiFiDirect.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked && (!app.getWiFiEnabled() || !app.wifiDirectAuthority) && container instanceof MainActivity ma) {
+                save();
+                ma.triggerWiFiDirectEnable();
+            }
+        });
         binding.buttonDiscoverable.setOnClickListener(v -> {
             if (container instanceof MainActivity ma) {
-                binding.buttonDiscoverable.setEnabled(false);
                 ma.triggerBluetoothDiscoverable();
                 //TODO: Trigger Wi-Fi direct discoverable
             }
         });
-        //TODO: Add events / support for permission requests
     }
 
     private void refreshAddresses() {
@@ -119,7 +127,7 @@ public class SettingsFragment extends Fragment implements IRefreshable {
         binding.switchGateway.setChecked(app.settings.gatewayMode());
         binding.switchOnion.setChecked(app.settings.etherealPrivateKeyKEM != null && app.settings.etherealPrivateKeyDSA != null);
         binding.switchBluetooth.setChecked(app.settings.enabledBluetooth() && app.getBluetoothEnabled());
-        binding.switchWiFiDirect.setChecked(app.settings.enabledWiFiDirect() && app.getPackageManager().hasSystemFeature(PackageManager.FEATURE_WIFI_DIRECT));
+        binding.switchWiFiDirect.setChecked(app.settings.enabledWiFiDirect() && app.getWiFiEnabled());
         binding.buttonSettingsNewCircuit.setEnabled(app.serviceActive && binding.switchOnion.isChecked());
         binding.buttonSettingsNewKeys.setEnabled(!app.serviceActive);
         binding.editTextNumberPacketCache.setEnabled(!app.serviceActive);
