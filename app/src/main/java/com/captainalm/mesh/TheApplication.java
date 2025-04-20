@@ -233,8 +233,11 @@ public class TheApplication extends Application {
             settingsPIntent = PendingIntent.getActivity(context, 0,
                     new Intent(this, MainActivity.class).putExtra("frag",
                             FragmentIndicator.Unknown.getID()), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        return new NotificationCompat.Builder(context, vpnNotifID).setSmallIcon(R.drawable.network_accept).setContentTitle(getString(R.string.vpn_channel))
-                .setContentText(getString(resString) + ((extra == null) ? "" : extra)).setContentIntent(settingsPIntent).setAutoCancel(true);
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, vpnNotifID).setSmallIcon(R.drawable.network_accept).setContentTitle(getString(R.string.vpn_channel))
+                .setContentText(getString(resString)).setContentIntent(settingsPIntent).setAutoCancel(true);
+        if (extra != null)
+            builder.setStyle(new NotificationCompat.BigTextStyle().bigText(getString(resString) + "\n" + extra));
+        return builder;
     }
 
     public String ipv4ToIP(byte[] addr) {

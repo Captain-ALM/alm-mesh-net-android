@@ -92,6 +92,8 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
             settingsPIntent = PendingIntent.getActivity(this, 0,
                     new Intent(this, MainActivity.class).putExtra("frag",
                             FragmentIndicator.Unknown.getID()), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+        // TODO: Create transport managers
     }
 
     @Override
@@ -104,6 +106,9 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
             intentReceiverRegistered = false;
         }
         intentReceiver = null;
+        for (TransportManager manager : managers)
+            manager.terminate();
+        managers.clear();
     }
 
     @Override
@@ -207,7 +212,9 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
                     }
                 });
                 nodeThread.start();
-                // TODO: Create managers
+                TransportManager[] lManagers = managers.toArray(new TransportManager[0]);
+                for (TransportManager manager : lManagers)
+                    manager.setRouter(router);
                 messenger.sendEmptyMessage(R.string.vpn_running);
             }
         } catch (SecurityException | UnknownHostException ignored) {
@@ -220,7 +227,9 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
         synchronized (slockVPN) {
             if (router == null)
                 return;
-            // TODO: Terminate managers
+            TransportManager[] lManagers = managers.toArray(new TransportManager[0]);
+            for (TransportManager manager : lManagers)
+                manager.clearRouter();
             router.deactivate(true);
             if (exceptionThread != null && exceptionThread.isAlive())
                 exceptionThread.interrupt();

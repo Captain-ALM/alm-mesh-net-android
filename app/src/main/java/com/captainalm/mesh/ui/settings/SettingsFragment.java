@@ -131,8 +131,8 @@ public class SettingsFragment extends Fragment implements IRefreshable {
 
     @Override
     public void onDestroyView() {
-        super.onDestroyView();
         save();
+        super.onDestroyView();
         binding = null;
     }
 
