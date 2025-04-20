@@ -49,7 +49,7 @@ public class MainActivity extends AppCompatActivity {
     private ActivityResultLauncher<Intent> bluetoothDiscover;
     private boolean discoveringBluetooth = false;
     private boolean discoveringP2P = false;
-    private boolean canRegisterBluetoothProtected;
+    private boolean canRegisterBluetoothProtected = true;
     private boolean intentReceiverBluetoothRegistered;
     private RemoteIntentReceiver intentReceiverBluetooth;
 
@@ -224,10 +224,16 @@ public class MainActivity extends AppCompatActivity {
             intentReceiver.register(filter);
             intentReceiverRegistered = true;
         }
-        if (!intentReceiverBluetoothRegistered && canRegisterBluetoothProtected) {
+        registerProtectedBluetooth(false);
+    }
+
+    private void registerProtectedBluetooth(boolean override) {
+        if (!intentReceiverBluetoothRegistered && (canRegisterBluetoothProtected || override)) {
             IntentFilter filter = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
             intentReceiverBluetooth.register(filter);
             intentReceiverBluetoothRegistered = true;
+            if (override)
+                canRegisterBluetoothProtected = true;
         }
     }
 
@@ -238,7 +244,7 @@ public class MainActivity extends AppCompatActivity {
             intentReceiver.unregister();
             intentReceiverRegistered = false;
         }
-        if (intentReceiverBluetoothRegistered) {
+        if (intentReceiverBluetoothRegistered && canRegisterBluetoothProtected) {
             intentReceiverBluetooth.unregister();
             intentReceiverBluetoothRegistered = false;
         }
@@ -292,14 +298,15 @@ public class MainActivity extends AppCompatActivity {
         }
         if (!perms.isEmpty())
             requestPermissions(perms.toArray(new String[0]), 8080);
-        else
+        else {
+            registerProtectedBluetooth(true);
             bluetoothEnable.launch(new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE));
+        }
     }
 
     public void triggerBluetoothDiscoverable() {
-        if (!app.getBluetoothEnabled()) {
+        if (!app.getBluetoothEnabled() || !canRegisterBluetoothProtected) {
             refresh(FragmentIndicator.Unknown);
-            return;
         } else {
             discoveringBluetooth = true;
             bluetoothDiscover.launch(new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 60));
@@ -338,9 +345,9 @@ public class MainActivity extends AppCompatActivity {
         @SuppressLint("UnspecifiedRegisterReceiverFlag")
         public void register(IntentFilter filter) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
-                MainActivity.this.registerReceiver(intentReceiver, filter, RECEIVER_EXPORTED);
+                MainActivity.this.registerReceiver(this, filter, RECEIVER_EXPORTED);
             else
-                MainActivity.this.registerReceiver(intentReceiver, filter);
+                MainActivity.this.registerReceiver(this, filter);
         }
 
         public void unregister() {

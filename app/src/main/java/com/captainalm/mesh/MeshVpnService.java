@@ -293,9 +293,9 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
         @SuppressLint("UnspecifiedRegisterReceiverFlag")
         public void register(IntentFilter filter) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
-                MeshVpnService.this.registerReceiver(intentReceiver, filter, RECEIVER_EXPORTED);
+                MeshVpnService.this.registerReceiver(this, filter, RECEIVER_EXPORTED);
             else
-                MeshVpnService.this.registerReceiver(intentReceiver, filter);
+                MeshVpnService.this.registerReceiver(this, filter);
         }
 
         public void unregister() {
