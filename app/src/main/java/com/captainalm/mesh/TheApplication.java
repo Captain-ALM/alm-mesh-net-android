@@ -4,6 +4,8 @@ import android.app.Application;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -54,6 +56,9 @@ public class TheApplication extends Application {
     private final Object slockEtherealNode = new Object();
     public boolean firstStart = true;
     public boolean serviceActive;
+    private BluetoothManager bManage;
+    private BluetoothAdapter bAdapter;
+    private final Object slockBluetooth = new Object();
 
      // Adapted from:
      // https://stackoverflow.com/questions/2584401/how-to-add-bouncy-castle-algorithm-to-android/66323575#66323575
@@ -294,5 +299,28 @@ public class TheApplication extends Application {
         if (addr.length() > 2)
             return addr.substring(1, addr.length() - 1);
         return addr;
+    }
+
+    public BluetoothManager getBluetoothManager() {
+        synchronized (slockBluetooth) {
+            if (bManage == null)
+                bManage = getSystemService(BluetoothManager.class);
+        }
+        return bManage;
+    }
+
+    public BluetoothAdapter getBluetoothAdapter() {
+        if (bManage == null)
+            getBluetoothManager();
+        synchronized (slockBluetooth) {
+            if (bAdapter == null)
+                bAdapter = bManage.getAdapter();
+        }
+        return bAdapter;
+    }
+
+    public boolean getBluetoothEnabled() {
+        BluetoothAdapter bluetoothAdapter = getBluetoothAdapter();
+        return bluetoothAdapter != null && bluetoothAdapter.isEnabled();
     }
 }

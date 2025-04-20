@@ -68,11 +68,11 @@ public class MLKem implements IUnwrapper {
     }
 
     @Override
-    public byte[][] wrap(Random rand) throws GeneralSecurityException {
-        if (!(rand instanceof SecureRandom) || publicKey.get() == null)
+    public byte[][] wrap(SecureRandom rand) throws GeneralSecurityException {
+        if (rand == null || publicKey.get() == null)
             return new byte[][] {new byte[32], new byte[1088]};
         try {
-            SecretWithEncapsulation data = new MLKEMGenerator((SecureRandom) rand).generateEncapsulated(PublicKeyFactory.createKey(publicKey.get().getEncoded()));
+            SecretWithEncapsulation data = new MLKEMGenerator(rand).generateEncapsulated(PublicKeyFactory.createKey(publicKey.get().getEncoded()));
             return new byte[][] {data.getSecret(), data.getEncapsulation()};
         } catch (IOException e) {
             throw new GeneralSecurityException(e);

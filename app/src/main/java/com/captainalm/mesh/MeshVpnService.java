@@ -44,6 +44,7 @@ import java.util.Objects;
  */
 public class MeshVpnService extends VpnService implements Handler.Callback {
     public static final int MTU = 1280;
+    private static final int DISCON_NOTIF_ID = 97;
     private RemoteIntentReceiver intentReceiver;
     private boolean intentReceiverRegistered;
 
@@ -82,10 +83,10 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
         intentReceiver = new RemoteIntentReceiver();
 
         if (!intentReceiverRegistered) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
-                registerReceiver(intentReceiver, new IntentFilter( IntentActions.REFRESH), RECEIVER_NOT_EXPORTED);
-            else
-                registerReceiver(intentReceiver, new IntentFilter( IntentActions.REFRESH));
+            IntentFilter filter = new IntentFilter(IntentActions.PURGE_BLOCKED);
+            filter.addAction(IntentActions.ACTIVITY_UP);
+            filter.addAction(IntentActions.NEW_CIRCUIT);
+            intentReceiver.register(filter);
             intentReceiverRegistered = true;
         }
 
@@ -101,7 +102,7 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
         stopVPN();
         app = null;
         if (intentReceiverRegistered) {
-            unregisterReceiver(intentReceiver);
+            intentReceiver.unregister();
             intentReceiverRegistered = false;
         }
         intentReceiver = null;
@@ -114,12 +115,12 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null && IntentActions.STOP_VPN.equals(intent.getAction())) {
             extra = "";
-            messenger.sendEmptyMessage(R.string.vpn_stopping);
+            notificationUpdate(R.string.vpn_stopping);
             stopVPN();
             refreshApp();
             return START_NOT_STICKY;
         } else {
-            messenger.sendEmptyMessage(R.string.vpn_starting);
+            notificationUpdate(R.string.vpn_starting);
             startVPN(intent != null && intent.getBooleanExtra("onion", false));
             refreshApp();
             return START_STICKY;
@@ -260,10 +261,13 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
             if (stringRes == R.string.vpn_stopped) {
                 stopForeground(true);
                 if (ActivityCompat.checkSelfPermission(this, "android.permission.POST_NOTIFICATIONS") == PackageManager.PERMISSION_GRANTED)
-                    getSystemService(NotificationManager.class).notify(97,
+                    getSystemService(NotificationManager.class).notify(DISCON_NOTIF_ID,
                             app.getVPNNotification(this, stringRes, extra).build());
-            } else
+            } else {
                 startForeground(1, app.getVPNNotification(this, stringRes, extra).build());
+                if (ActivityCompat.checkSelfPermission(this, "android.permission.POST_NOTIFICATIONS") == PackageManager.PERMISSION_GRANTED)
+                    getSystemService(NotificationManager.class).cancel(DISCON_NOTIF_ID);
+            }
     }
 
     private class RemoteIntentReceiver extends BroadcastReceiver {
@@ -278,6 +282,24 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
                     manager.purgeBlockCache();
             } /*else if (Objects.equals(intent.getAction(), IntentActions.NEW_CIRCUIT)) {
             }*/
+        }
+
+        // Below Based on:
+        // https://stackoverflow.com/questions/7276537/using-a-broadcast-intent-broadcast-receiver-to-send-messages-from-a-service-to-a/7276808#7276808
+        // Squonk; micha
+        // And
+        // https://stackoverflow.com/questions/77235063/one-of-receiver-exported-or-receiver-not-exported-should-be-specified-when-a-rec/77529595#77529595
+        // Mohd. Jafar Iqbal khan; Pritesh Patel
+        @SuppressLint("UnspecifiedRegisterReceiverFlag")
+        public void register(IntentFilter filter) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+                MeshVpnService.this.registerReceiver(intentReceiver, filter, RECEIVER_EXPORTED);
+            else
+                MeshVpnService.this.registerReceiver(intentReceiver, filter);
+        }
+
+        public void unregister() {
+            MeshVpnService.this.unregisterReceiver(this);
         }
     }
 }

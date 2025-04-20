@@ -65,7 +65,7 @@ public class Provider implements IProvider {
             ICryptor cryptor = this.GetCryptorInstance();
             IUnwrapper unwrapper = this.GetUnwrapperInstance();
             ISigner signer = this.GetSignerInstance();
-            Random random = new SecureRandom();
+            SecureRandom random = new SecureRandom();
             byte[] data = new byte[32768];
             byte[] data2 = new byte[32768];
             random.nextBytes(data);

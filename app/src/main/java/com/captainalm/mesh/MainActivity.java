@@ -1,20 +1,22 @@
 package com.captainalm.mesh;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
+import android.bluetooth.BluetoothAdapter;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.net.VpnService;
 import android.os.Build;
 import android.os.Bundle;
 
 import com.google.android.material.navigation.NavigationView;
 
-import androidx.activity.result.ActivityResult;
-import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
@@ -43,6 +45,13 @@ public class MainActivity extends AppCompatActivity {
     private final List<IRefreshable> refreshables = new LinkedList<>();
 
     private ActivityResultLauncher<Intent> vpnLauncher;
+    private ActivityResultLauncher<Intent> bluetoothEnable;
+    private ActivityResultLauncher<Intent> bluetoothDiscover;
+    private boolean discoveringBluetooth = false;
+    private boolean discoveringP2P = false;
+    private boolean canRegisterBluetoothProtected;
+    private boolean intentReceiverBluetoothRegistered;
+    private RemoteIntentReceiver intentReceiverBluetooth;
 
     @Override
     protected void onDestroy() {
@@ -54,6 +63,7 @@ public class MainActivity extends AppCompatActivity {
         mAppBarConfiguration = null;
         navController = null;
         intentReceiver = null;
+        intentReceiverBluetooth = null;
     }
 
     @Override
@@ -66,6 +76,7 @@ public class MainActivity extends AppCompatActivity {
             app = ta;
 
         intentReceiver = new RemoteIntentReceiver();
+        intentReceiverBluetooth = new RemoteIntentReceiver();
 
         if (app == null)
             return;
@@ -78,6 +89,22 @@ public class MainActivity extends AppCompatActivity {
                     else
                         refresh(FragmentIndicator.Unknown);
                 });
+        if (bluetoothEnable == null)
+            bluetoothEnable = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
+                    o -> {
+                if (o.getResultCode() == MainActivity.RESULT_CANCELED && app != null) {
+                    app.settings.setBluetooth(false);
+                    refresh(FragmentIndicator.Unknown);
+                }
+                    });
+        if (bluetoothDiscover == null)
+            bluetoothDiscover = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
+                    o -> {
+                if (o.getResultCode() == MainActivity.RESULT_CANCELED) {
+                    discoveringBluetooth = false;
+                    refresh(FragmentIndicator.Unknown);
+                }
+                    });
 
         // Template defined
         getLayoutInflater();
@@ -187,22 +214,20 @@ public class MainActivity extends AppCompatActivity {
                 || super.onSupportNavigateUp();
     }
 
-    // Below Based on:
-    // https://stackoverflow.com/questions/7276537/using-a-broadcast-intent-broadcast-receiver-to-send-messages-from-a-service-to-a/7276808#7276808
-    // Squonk; micha
-    // And
-    // https://stackoverflow.com/questions/77235063/one-of-receiver-exported-or-receiver-not-exported-should-be-specified-when-a-rec/77529595#77529595
-    // Mohd. Jafar Iqbal khan; Pritesh Patel
-    @SuppressLint("UnspecifiedRegisterReceiverFlag")
+
     @Override
     protected void onResume() {
         super.onResume();
         if (!intentReceiverRegistered) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
-                registerReceiver(intentReceiver, new IntentFilter( IntentActions.REFRESH), RECEIVER_NOT_EXPORTED);
-            else
-                registerReceiver(intentReceiver, new IntentFilter( IntentActions.REFRESH));
+            IntentFilter filter = new IntentFilter(IntentActions.REFRESH);
+            filter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
+            intentReceiver.register(filter);
             intentReceiverRegistered = true;
+        }
+        if (!intentReceiverBluetoothRegistered && canRegisterBluetoothProtected) {
+            IntentFilter filter = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+            intentReceiverBluetooth.register(filter);
+            intentReceiverBluetoothRegistered = true;
         }
     }
 
@@ -210,8 +235,30 @@ public class MainActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         if (intentReceiverRegistered) {
-            unregisterReceiver(intentReceiver);
+            intentReceiver.unregister();
             intentReceiverRegistered = false;
+        }
+        if (intentReceiverBluetoothRegistered) {
+            intentReceiverBluetooth.unregister();
+            intentReceiverBluetoothRegistered = false;
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == 8080) { // Bluetooth
+            boolean fine = grantResults.length > 0;
+            for (int c : grantResults)
+                fine = fine && (c == PackageManager.PERMISSION_GRANTED);
+            if (fine)
+                triggerBluetoothEnable();
+            else {
+                app.settings.setBluetooth(false);
+                refresh(FragmentIndicator.Unknown);
+            }
+        } else if (requestCode == 8081) { // Wi-Fi Direct
+
         }
     }
 
@@ -225,6 +272,44 @@ public class MainActivity extends AppCompatActivity {
             vpnLauncher.launch(vpnIntent);
     }
 
+    public void triggerBluetoothEnable() {
+        List<String> perms = new LinkedList<>();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED)
+                perms.add(Manifest.permission.BLUETOOTH_SCAN);
+            if (checkSelfPermission(Manifest.permission.BLUETOOTH_ADVERTISE) != PackageManager.PERMISSION_GRANTED)
+                perms.add(Manifest.permission.BLUETOOTH_ADVERTISE);
+            if (checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED)
+                perms.add(Manifest.permission.BLUETOOTH_CONNECT);
+        }
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                if (checkSelfPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION) != PackageManager.PERMISSION_GRANTED)
+                    perms.add(Manifest.permission.ACCESS_BACKGROUND_LOCATION);
+            }
+            if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)
+                perms.add(Manifest.permission.ACCESS_FINE_LOCATION);
+        }
+        if (!perms.isEmpty())
+            requestPermissions(perms.toArray(new String[0]), 8080);
+        else
+            bluetoothEnable.launch(new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE));
+    }
+
+    public void triggerBluetoothDiscoverable() {
+        if (!app.getBluetoothEnabled()) {
+            refresh(FragmentIndicator.Unknown);
+            return;
+        } else {
+            discoveringBluetooth = true;
+            bluetoothDiscover.launch(new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 60));
+        }
+    }
+
+    public boolean isDiscovering() {
+        return discoveringBluetooth || discoveringP2P;
+    }
+
     private class RemoteIntentReceiver extends BroadcastReceiver {
 
         @Override
@@ -236,7 +321,30 @@ public class MainActivity extends AppCompatActivity {
                 else
                     triggerNavigation(intent.getIntExtra("frag", -1));
                 refresh(indicator);
+            } else if (BluetoothAdapter.ACTION_STATE_CHANGED.equals(intent.getAction())) {
+                refresh(FragmentIndicator.Unknown);
+            } else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(intent.getAction())) {
+                refresh(FragmentIndicator.Unknown);
             }
+        }
+
+
+        // Below Based on:
+        // https://stackoverflow.com/questions/7276537/using-a-broadcast-intent-broadcast-receiver-to-send-messages-from-a-service-to-a/7276808#7276808
+        // Squonk; micha
+        // And
+        // https://stackoverflow.com/questions/77235063/one-of-receiver-exported-or-receiver-not-exported-should-be-specified-when-a-rec/77529595#77529595
+        // Mohd. Jafar Iqbal khan; Pritesh Patel
+        @SuppressLint("UnspecifiedRegisterReceiverFlag")
+        public void register(IntentFilter filter) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+                MainActivity.this.registerReceiver(intentReceiver, filter, RECEIVER_EXPORTED);
+            else
+                MainActivity.this.registerReceiver(intentReceiver, filter);
+        }
+
+        public void unregister() {
+            MainActivity.this.unregisterReceiver(this);
         }
     }
 }
