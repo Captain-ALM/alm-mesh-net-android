@@ -61,9 +61,10 @@ public class SettingsFragment extends Fragment implements IRefreshable {
                     save();
                     if (app.settings.enabledBluetooth() && !app.bluetoothAuthority)
                         ma.triggerBluetoothEnable();
-                    else if (app.settings.enabledWiFiDirect() && !app.wifiDirectAuthority)
+                    if (app.settings.enabledWiFiDirect() && !app.wifiDirectAuthority)
                         ma.triggerWiFiDirectEnable();
-                    else
+                    if (((app.settings.enabledBluetooth() && app.bluetoothAuthority) || !app.settings.enabledBluetooth())
+                    && ((app.settings.enabledWiFiDirect() && app.wifiDirectAuthority) || !app.settings.enabledWiFiDirect()))
                         ma.startVPN(binding.switchOnion.isChecked());
                     refresh();
                 } else
