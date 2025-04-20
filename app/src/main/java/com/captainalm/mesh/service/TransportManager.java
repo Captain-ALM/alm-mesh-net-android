@@ -7,7 +7,7 @@ import com.captainalm.lib.mesh.routing.Router;
  *
  * @author Alfred Manville
  */
-public abstract class TransportManager implements Runnable {
+public abstract class TransportManager {
 
     public void purgeBlockCache() {
     }

@@ -9,6 +9,7 @@ import android.view.ViewGroup;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import com.captainalm.lib.mesh.routing.graphing.GraphNode;
 import com.captainalm.mesh.FragmentIndicator;
 import com.captainalm.mesh.IRefreshable;
 import com.captainalm.mesh.MainActivity;
@@ -69,7 +70,21 @@ public class SettingsFragment extends Fragment implements IRefreshable {
             app.regenerateCircuit();
             refresh();
         });
+        binding.switchOnion.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (!isChecked) {
+                app.settings.etherealPrivateKeyKEM = null;
+                app.settings.etherealPrivateKeyDSA = null;
+            }
+            refreshAddresses();
+        });
         //TODO: Add events / support for permission requests
+    }
+
+    private void refreshAddresses() {
+        GraphNode ce = app.getThisEtherealNode();
+        binding.textViewSettingsIPv4.setText(app.ipv4ToIP((ce == null || !app.serviceActive) ? app.thisNode.getIPv4Address() : ce.getIPv4Address()));
+        binding.textViewSettingsIPv6.setText(app.ipv6HexToIP((ce == null || !app.serviceActive) ? app.thisNode.getIPv6AddressString() : ce.getIPv6AddressString()));
+
     }
 
     protected void refresh() {
@@ -78,8 +93,7 @@ public class SettingsFragment extends Fragment implements IRefreshable {
         Node c = new Node(app.thisNode);
         binding.textViewSettingsCheckCode.setText(Integer.toString(c.getCheckCode()));
         binding.textViewSettingsID.setText(c.ID);
-        binding.textViewSettingsIPv4.setText(app.ipv4ToIP(app.thisNode.getIPv4Address()));
-        binding.textViewSettingsIPv6.setText(app.ipv6HexToIP(app.thisNode.getIPv6AddressString()));
+        refreshAddresses();
         binding.switchEnabler.setChecked(app.serviceActive);
         binding.editTextNumberPacketCache.setText(Integer.toString(app.settings.packetChargeSize));
         binding.editTextNumberMaxTTL.setText(Integer.toString(app.settings.maxTTL));

@@ -1,6 +1,5 @@
 package com.captainalm.mesh;
 
-import android.app.Activity;
 import android.app.Application;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -8,10 +7,8 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.net.VpnService;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.room.Room;
@@ -36,7 +33,6 @@ import java.security.KeyPair;
 import java.security.Security;
 import java.util.List;
 import java.util.Random;
-import java.util.UUID;
 
 /**
  * Provides a way of overriding the security provider.
@@ -54,6 +50,8 @@ public class TheApplication extends Application {
     private String vpnNotifID;
     private PendingIntent settingsPIntent;
     public GraphNode thisNode;
+    private GraphNode thisEtherealNode;
+    private final Object slockEtherealNode = new Object();
     public boolean firstStart = true;
     public boolean serviceActive;
 
@@ -138,18 +136,33 @@ public class TheApplication extends Application {
     }
 
     public void onionSetup(boolean onion) {
-        if (onion) {
-            KeyPair kem = Provider.generateMLKemKeyPair();
-            if (kem != null)
-                this.settings.setEtherealPrivateKeyKEM((MLKEMPrivateKey) kem.getPrivate());
-            KeyPair dsa = Provider.generateMLDsaKeyPair();
-            if (dsa != null)
-                this.settings.setEtherealPrivateKeyDSA((MLDSAPrivateKey) dsa.getPrivate());
-            database.getSettingsDAO().updateSettings(this.settings);
-        } else {
-            this.settings.etherealPrivateKeyKEM = null;
-            this.settings.etherealPrivateKeyDSA = null;
-            database.getSettingsDAO().updateSettings(this.settings);
+        synchronized (slockEtherealNode) {
+            if (onion) {
+                KeyPair kem = Provider.generateMLKemKeyPair();
+                if (kem != null)
+                    this.settings.setEtherealPrivateKeyKEM((MLKEMPrivateKey) kem.getPrivate());
+                KeyPair dsa = Provider.generateMLDsaKeyPair();
+                if (dsa != null)
+                    this.settings.setEtherealPrivateKeyDSA((MLDSAPrivateKey) dsa.getPrivate());
+                database.getSettingsDAO().updateSettings(this.settings);
+                byte[] kemKey = this.settings.getEtherealPrivateKeyKEM().getPublicKey().getPublicData();
+                byte[] dsaKey = this.settings.getEtherealPrivateKeyDSA().getPublicKey().getPublicData();
+                if (kemKey != null && dsaKey != null)
+                    this.thisEtherealNode = new GraphNode(kemKey, dsaKey, cryptographyProvider.GetHasherInstance());
+                else
+                    this.thisEtherealNode = new GraphNode(new byte[32]);
+            } else {
+                thisEtherealNode = null;
+                this.settings.etherealPrivateKeyKEM = null;
+                this.settings.etherealPrivateKeyDSA = null;
+                database.getSettingsDAO().updateSettings(this.settings);
+            }
+        }
+    }
+
+    public GraphNode getThisEtherealNode() {
+        synchronized (slockEtherealNode) {
+            return thisEtherealNode;
         }
     }
 

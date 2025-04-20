@@ -1,11 +1,13 @@
 package com.captainalm.mesh;
 
 import android.annotation.SuppressLint;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.net.IpPrefix;
 import android.net.VpnService;
 import android.os.Build;
@@ -15,11 +17,13 @@ import android.os.ParcelFileDescriptor;
 import android.system.OsConstants;
 
 import androidx.annotation.NonNull;
+import androidx.core.app.ActivityCompat;
 
 import com.captainalm.lib.mesh.crypto.Provider;
 import com.captainalm.lib.mesh.routing.IPacketProcessor;
 import com.captainalm.lib.mesh.routing.NetTransportProcessor;
 import com.captainalm.lib.mesh.routing.Router;
+import com.captainalm.lib.mesh.routing.graphing.GraphNode;
 import com.captainalm.mesh.db.Node;
 import com.captainalm.mesh.db.Settings;
 import com.captainalm.mesh.service.MeshVPN;
@@ -51,13 +55,10 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
     private IPacketProcessor packetProcessor;
     private MeshVPN vpnTransport;
     private final List<TransportManager> managers = new ArrayList<>();
-    private Settings settings;
     private final Object slockVPN = new Object();
     private PendingIntent settingsPIntent;
     private Thread exceptionThread;
     private Thread nodeThread;
-
-    private Thread autoStop;
 
     @Override
     public boolean handleMessage(@NonNull Message msg) {
@@ -113,10 +114,6 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        if (autoStop != null) {
-            autoStop.interrupt();
-            autoStop = null;
-        }
         if (intent != null && IntentActions.STOP_VPN.equals(intent.getAction())) {
             extra = "";
             messenger.sendEmptyMessage(R.string.vpn_stopping);
@@ -131,6 +128,13 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
         }
     }
 
+    private Settings loadSettings() {
+        List<Settings> settingsList = app.database.getSettingsDAO().getSettings();
+        if (settingsList == null || settingsList.isEmpty())
+            return null;
+        return settingsList.get(0);
+    }
+
     private void startVPN(boolean onion) {
         if (app == null)
             return;
@@ -138,10 +142,9 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
             synchronized (slockVPN) {
                 if (router != null)
                     return;
-                List<Settings> settingsList = app.database.getSettingsDAO().getSettings();
-                if (settingsList == null || settingsList.isEmpty())
+                Settings settings = loadSettings();
+                if (settings == null)
                     return;
-                settings = settingsList.get(0);
                 VpnService.Builder builder = new Builder().setBlocking(true).setMtu(MTU);
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
                     builder.setMetered(true);
@@ -149,12 +152,14 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
                 builder.allowFamily(OsConstants.AF_INET6);
                 builder.addAddress(app.ipv4ToIP(app.thisNode.getIPv4Address()), 32);
                 builder.addAddress(app.ipv6HexToIPPure(app.thisNode.getIPv6AddressString()).toLowerCase(), 126);
-                extra = app.ipv4ToIP(app.thisNode.getIPv4Address()) + "\n" + app.ipv6HexToIPPure(app.thisNode.getIPv6AddressString()).toLowerCase();
+                GraphNode ce = app.getThisEtherealNode();
+                extra = app.ipv4ToIP((ce == null) ? app.thisNode.getIPv4Address() : ce.getIPv4Address()) + "\n"
+                        + app.ipv6HexToIPPure((ce == null) ? app.thisNode.getIPv6AddressString() : ce.getIPv6AddressString()).toLowerCase();
                 if (settings.gatewayMode()) {
                     builder.addRoute("::", 0);
                     builder.addRoute("0.0.0.0", 0);
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
-                        builder.excludeRoute(new IpPrefix(InetAddress.getByName("192.168.49.0"), 24));
+                        builder.excludeRoute(new IpPrefix(InetAddress.getByName("192.168.49.0"), 24)); // Wi-Fi Direct
                 } else {
                     builder.allowBypass();
                     builder.addRoute("fd0a::", 16);
@@ -244,16 +249,6 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
             if (app != null)
                 app.serviceActive = false;
             messenger.sendEmptyMessage(R.string.vpn_stopped);
-            autoStop = new Thread(() -> {
-               try {
-                   Thread.sleep(15000);
-                   synchronized (slockVPN) {
-                       stopForeground(true);
-                   }
-               } catch (InterruptedException ignored) {
-               }
-            });
-            autoStop.start();
         }
     }
 
@@ -264,7 +259,13 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
 
     private void notificationUpdate(int stringRes) {
         if (app != null)
-            startForeground(1, app.getVPNNotification(this, stringRes, extra).build());
+            if (stringRes == R.string.vpn_stopped) {
+                stopForeground(true);
+                if (ActivityCompat.checkSelfPermission(this, "android.permission.POST_NOTIFICATIONS") == PackageManager.PERMISSION_GRANTED)
+                    getSystemService(NotificationManager.class).notify(97,
+                            app.getVPNNotification(this, stringRes, extra).build());
+            } else
+                startForeground(1, app.getVPNNotification(this, stringRes, extra).build());
     }
 
     private class RemoteIntentReceiver extends BroadcastReceiver {
