@@ -25,6 +25,7 @@ import com.captainalm.mesh.db.Settings;
 import com.captainalm.mesh.service.MeshVPN;
 import com.captainalm.mesh.service.TransportManager;
 
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -38,7 +39,7 @@ import java.util.Objects;
  * @author Alfred Manville
  */
 public class MeshVpnService extends VpnService implements Handler.Callback {
-    public static final int MTU = 1200;
+    public static final int MTU = 1280;
     private RemoteIntentReceiver intentReceiver;
     private boolean intentReceiverRegistered;
 
@@ -140,18 +141,18 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
                     builder.setMetered(true);
                 builder.allowFamily(OsConstants.AF_INET);
-                //builder.allowFamily(OsConstants.AF_INET6); // IPv6 does not work
+                builder.allowFamily(OsConstants.AF_INET6);
                 builder.addAddress(app.ipv4ToIP(app.thisNode.getIPv4Address()), 32);
-                //builder.addAddress(app.ipv6HexToIPPure(app.thisNode.getIPv6AddressString()).toLowerCase(), 128);
-                extra = app.ipv4ToIP(app.thisNode.getIPv4Address());
+                builder.addAddress(app.ipv6HexToIPPure(app.thisNode.getIPv6AddressString()).toLowerCase(), 126);
+                extra = app.ipv4ToIP(app.thisNode.getIPv4Address()) + "\n" + app.ipv6HexToIPPure(app.thisNode.getIPv6AddressString()).toLowerCase();
                 if (settings.gatewayMode()) {
-                    //builder.addRoute("::", 0)
+                    builder.addRoute("::", 0);
                     builder.addRoute("0.0.0.0", 0);
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
                         builder.excludeRoute(new IpPrefix(InetAddress.getByName("192.168.49.0"), 24));
                 } else {
                     builder.allowBypass();
-                    //builder.addRoute("fd0a::", 16);
+                    builder.addRoute("fd0a::", 16);
                     builder.addRoute("10.0.0.0", 8);
                 }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -159,8 +160,8 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
                         try {
                             if (excluded.contains("."))
                                 builder.excludeRoute(new IpPrefix(InetAddress.getByName(excluded), 32));
-                            //else if (excluded.contains(":"))
-                                //builder.excludeRoute(new IpPrefix(Inet6Address.getByName(excluded), 128));
+                            else if (excluded.contains(":"))
+                                builder.excludeRoute(new IpPrefix(Inet6Address.getByName(excluded), 128));
                         } catch (IllegalArgumentException e) {
                             if (app != null)
                                 app.showException(e);
