@@ -93,8 +93,6 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
             settingsPIntent = PendingIntent.getActivity(this, 0,
                     new Intent(this, MainActivity.class).putExtra("frag",
                             FragmentIndicator.Unknown.getID()), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-
-        // TODO: Create transport managers
     }
 
     @Override
@@ -217,8 +215,8 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
                     }
                 });
                 nodeThread.start();
-                TransportManager[] lManagers = managers.toArray(new TransportManager[0]);
-                for (TransportManager manager : lManagers)
+                // TODO: Modify transport mangers list based on settings
+                for (TransportManager manager : managers)
                     manager.setRouter(router);
                 messenger.sendEmptyMessage(R.string.vpn_running);
             }
