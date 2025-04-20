@@ -1,5 +1,6 @@
 package com.captainalm.mesh;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -86,6 +87,7 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
             IntentFilter filter = new IntentFilter(IntentActions.PURGE_BLOCKED);
             filter.addAction(IntentActions.ACTIVITY_UP);
             filter.addAction(IntentActions.NEW_CIRCUIT);
+            filter.addAction(IntentActions.DISCOVERY);
             intentReceiver.register(filter);
             intentReceiverRegistered = true;
         }
@@ -260,12 +262,12 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
         if (app != null)
             if (stringRes == R.string.vpn_stopped) {
                 stopForeground(true);
-                if (ActivityCompat.checkSelfPermission(this, "android.permission.POST_NOTIFICATIONS") == PackageManager.PERMISSION_GRANTED)
+                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED)
                     getSystemService(NotificationManager.class).notify(DISCON_NOTIF_ID,
                             app.getVPNNotification(this, stringRes, extra).build());
             } else {
                 startForeground(1, app.getVPNNotification(this, stringRes, extra).build());
-                if (ActivityCompat.checkSelfPermission(this, "android.permission.POST_NOTIFICATIONS") == PackageManager.PERMISSION_GRANTED)
+                if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED)
                     getSystemService(NotificationManager.class).cancel(DISCON_NOTIF_ID);
             }
     }
@@ -276,6 +278,10 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
         public void onReceive(Context context, Intent intent) {
             if (Objects.equals(intent.getAction(), IntentActions.ACTIVITY_UP) && app != null) {
                 refreshApp();
+            } else if (Objects.equals(intent.getAction(), IntentActions.DISCOVERY)) {
+                TransportManager[] lManagers = managers.toArray(new TransportManager[0]);
+                for (TransportManager manager : lManagers)
+                    manager.discover();
             } else if (Objects.equals(intent.getAction(), IntentActions.PURGE_BLOCKED)) {
                 TransportManager[] lManagers = managers.toArray(new TransportManager[0]);
                 for (TransportManager manager : lManagers)

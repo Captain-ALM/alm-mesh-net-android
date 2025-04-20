@@ -1,6 +1,7 @@
 package com.captainalm.mesh.ui.settings;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -13,6 +14,7 @@ import androidx.fragment.app.Fragment;
 import com.captainalm.lib.mesh.routing.graphing.GraphNode;
 import com.captainalm.mesh.FragmentIndicator;
 import com.captainalm.mesh.IRefreshable;
+import com.captainalm.mesh.IntentActions;
 import com.captainalm.mesh.MainActivity;
 import com.captainalm.mesh.TheApplication;
 import com.captainalm.mesh.databinding.FragmentSettingsBinding;
@@ -98,7 +100,7 @@ public class SettingsFragment extends Fragment implements IRefreshable {
         binding.buttonDiscoverable.setOnClickListener(v -> {
             if (container instanceof MainActivity ma) {
                 ma.triggerBluetoothDiscoverable();
-                //TODO: Trigger Wi-Fi direct discoverable
+                app.sendBroadcast(new Intent(IntentActions.DISCOVERY));
             }
         });
     }
@@ -112,7 +114,7 @@ public class SettingsFragment extends Fragment implements IRefreshable {
     protected void refresh() {
         if (app == null || binding == null || app.settings == null || app.thisNode == null)
             return;
-        binding.buttonDiscoverable.setEnabled(app.serviceActive && container instanceof MainActivity ma && !ma.isDiscovering());
+        binding.buttonDiscoverable.setEnabled(app.serviceActive);
         Node c = new Node(app.thisNode);
         binding.textViewSettingsCheckCode.setText(Integer.toString(c.getCheckCode()));
         binding.textViewSettingsID.setText(c.ID);

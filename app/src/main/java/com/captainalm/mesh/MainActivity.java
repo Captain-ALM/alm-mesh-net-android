@@ -57,8 +57,6 @@ public class MainActivity extends AppCompatActivity {
     private ActivityResultLauncher<String> blocationWifiDirectPermissionLauncher;
     private ActivityResultLauncher<String> locationBluetoothPermissionLauncher;
     private ActivityResultLauncher<String> blocationBluetoothPermissionLauncher;
-    //private boolean discoveringBluetooth = false;
-    private boolean discoveringP2P = false;
 
     @Override
     protected void onDestroy() {
@@ -407,10 +405,6 @@ public class MainActivity extends AppCompatActivity {
             refresh(FragmentIndicator.Unknown);
         else
             bluetoothDiscover.launch(new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 60));
-    }
-
-    public boolean isDiscovering() {
-        return discoveringP2P;
     }
 
     private class RemoteIntentReceiver extends BroadcastReceiver {

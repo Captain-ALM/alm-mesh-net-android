@@ -1,5 +1,8 @@
 package com.captainalm.mesh.service;
 
+import android.content.Context;
+import android.content.Intent;
+
 import com.captainalm.lib.mesh.routing.Router;
 
 import java.util.LinkedList;
@@ -98,6 +101,10 @@ public abstract class TransportManager {
             this.router = router;
         }
     }
+
+    public abstract void discover();
+
+    public abstract void receiveBroadcast(Context context, Intent intent);
 
     public void terminate() {
         active = false;

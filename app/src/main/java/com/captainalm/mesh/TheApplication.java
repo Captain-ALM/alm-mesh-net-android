@@ -218,7 +218,7 @@ public class TheApplication extends Application {
                 .setSmallIcon(R.drawable.ic_launcher_foreground).setContentTitle(e.getClass().toString()).setContentText(e.getClass() + "\n"
                 + e.getMessage()).setStyle(new NotificationCompat.BigTextStyle().bigText(
                         e.getClass() + "\n"  + e.getMessage() + "\n" + esw)).setAutoCancel(true);
-        if (ActivityCompat.checkSelfPermission(this, "android.permission.POST_NOTIFICATIONS") == PackageManager.PERMISSION_GRANTED)
+        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED)
             getSystemService(NotificationManager.class).notify(new Random().nextInt(8) + 100, builder.build());
     }
 
@@ -230,7 +230,7 @@ public class TheApplication extends Application {
                 , PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_IMMUTABLE);
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, peerNotifID)
                 .setSmallIcon(R.drawable.network_peering).setContentTitle("Peering Request " + req.getCheckCode()).setContentText(req.ID).setAutoCancel(true).setContentIntent(pIntent);
-        if (ActivityCompat.checkSelfPermission(this, "android.permission.POST_NOTIFICATIONS") == PackageManager.PERMISSION_GRANTED)
+        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED)
             getSystemService(NotificationManager.class).notify(99, builder.build());
     }
 
@@ -242,7 +242,7 @@ public class TheApplication extends Application {
                 .setSmallIcon(R.drawable.network).setContentTitle(node.ID).setContentText(ipv4ToIP(copy.getIPv4Address()) + "\n" + ipv6HexToIP(copy.getIPv6AddressString()))
                 .setStyle(new NotificationCompat.BigTextStyle().bigText(node.ID + "\n" + node.getCheckCode() + "\n" +
                         ipv4ToIP(copy.getIPv4Address()) + "\n" + ipv6HexToIP(copy.getIPv6AddressString()))).setAutoCancel(true);
-        if (ActivityCompat.checkSelfPermission(this, "android.permission.POST_NOTIFICATIONS") == PackageManager.PERMISSION_GRANTED)
+        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED)
             getSystemService(NotificationManager.class).notify(98, builder.build());
     }
 
