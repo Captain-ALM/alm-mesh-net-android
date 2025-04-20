@@ -159,7 +159,8 @@ public class SettingsFragment extends Fragment implements IRefreshable {
                 app.settings.maxTTL = 254;
             app.settings.encryptionMode = binding.spinnerEncMode.getSelectedItemPosition();
             app.settings.excludedAddresses = binding.editTextExcAddr.getText().toString();
-            app.settings.recommendedSigPublicKey = binding.editTextRecSig.getText().toString();
+            app.settings.recommendedSigPublicKey = binding.editTextRecKey.getText().toString();
+            app.settings.recommendedSig = binding.editTextRecSig.getText().toString();
             app.settings.gatewayOn = (binding.switchGateway.isChecked()) ? 1 : 0;
             app.settings.setBluetooth(binding.switchBluetooth.isChecked());
             app.settings.setWiFiDirect(binding.switchWiFiDirect.isChecked());
