@@ -100,8 +100,8 @@ public class SettingsFragment extends Fragment implements IRefreshable {
         });
         binding.buttonDiscoverable.setOnClickListener(v -> {
             if (container instanceof MainActivity ma) {
-                ma.triggerBluetoothDiscoverable();
                 app.sendBroadcast(new Intent(IntentActions.DISCOVERY));
+                ma.triggerBluetoothDiscoverable();
             }
         });
     }

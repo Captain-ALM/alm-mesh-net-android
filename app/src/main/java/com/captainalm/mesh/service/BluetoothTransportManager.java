@@ -21,9 +21,10 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -41,6 +42,7 @@ public class BluetoothTransportManager extends TransportManager {
     private final BlockingQueue<UUID> uuidQueue = new LinkedBlockingQueue<>();
     private final List<Transport> waitingQueue = new LinkedList<>();
     private final Object slockWaiting = new Object();
+    private final int SCAN_TIME = 5000;
 
     @SuppressLint("MissingPermission")
     public BluetoothTransportManager(MeshVpnService service) {
@@ -56,14 +58,28 @@ public class BluetoothTransportManager extends TransportManager {
             }
         });
         scannerThread = new Thread(() -> {
-            Object infWait = new Object();
+            Object lSlock = new Object();
             while (active) {
                 try {
-                    synchronized (infWait) {
-                        infWait.wait();
+                    Thread.sleep(SCAN_TIME);
+                    BluetoothAdapter adapter = service.app.getBluetoothAdapter();
+                    android.util.Log.w("DEBUGGING-MESHNET-B-SCAN", "started");
+                    if (adapter != null && !adapter.isDiscovering())
+                        adapter.startDiscovery();
+                    Thread.sleep(SCAN_TIME);
+                    if (adapter != null && adapter.isDiscovering())
+                        adapter.cancelDiscovery();
+                    android.util.Log.w("DEBUGGING-MESHNET-B-SCAN", "ended");
+                } catch (InterruptedException ignored) {
+                }
+                if(!active)
+                    return;
+                try {
+                    synchronized (lSlock) {
+                        lSlock.wait();
                     }
                 } catch (InterruptedException e) {
-                    if (active) {
+                    /*if (active) {
                         BluetoothAdapter adapter = service.app.getBluetoothAdapter();
                         Set<BluetoothDevice> paired = null;
                         if (adapter != null)
@@ -80,21 +96,27 @@ public class BluetoothTransportManager extends TransportManager {
                             } catch (InterruptedException ignored) {
                             }
                         }
-                    }
+                    } */
                 }
             }
         });
         scannerThread.start();
-        uuidQueue.add(UUID.fromString("695a5c7d-6608-479c-b29e-87ae613e0013"));
-        uuidQueue.add(UUID.fromString("93271753-a9a5-41c6-82e9-cb32dbe27ad7"));
-        uuidQueue.add(UUID.fromString("83d9b788-917f-4392-8d0b-e56f42890a47"));
-        uuidQueue.add(UUID.fromString("df56ce3b-0af5-481f-a940-a0d482707b1d"));
+        List<UUID> uuids = new ArrayList<>();
+        uuids.add(UUID.fromString("98989800-0000-0000-0000-000000000000"));
+        uuids.add(UUID.fromString("98989801-0000-0000-0000-000000000000"));
+        uuids.add(UUID.fromString("98989802-0000-0000-0000-000000000000"));
+        uuids.add(UUID.fromString("98989803-0000-0000-0000-000000000000"));
+        uuids.add(UUID.fromString("98989804-0000-0000-0000-000000000000"));
+        uuids.add(UUID.fromString("98989805-0000-0000-0000-000000000000"));
+        Collections.shuffle(uuids);
+        uuidQueue.addAll(uuids);
         monitorThread.start();
     }
 
     private void addWaiting(Transport transport) {
         synchronized (slockWaiting) {
-            waitingQueue.add(transport);
+            if (!waitingQueue.contains(transport))
+                waitingQueue.add(transport);
             slockWaiting.notifyAll();
         }
     }
@@ -142,14 +164,19 @@ public class BluetoothTransportManager extends TransportManager {
     public void receiveBroadcast(Context context, Intent intent) {
         if (BluetoothDevice.ACTION_FOUND.equals(intent.getAction())) {
             BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-            if (!deviceBlocked(getAddress(device))) {
-                try {
-                    Transport nw = getNextWaitingTimeout(5000);
-                    if (nw != null)
-                        nw.connect(device);
-                } catch (InterruptedException ignored) {
+            String addr = getAddress(device);
+            if (addr != null)
+                android.util.Log.w("B-RB-FOUND", addr);
+            new Thread(() -> {
+                if (!deviceBlocked(getAddress(device))) {
+                    try {
+                        Transport nw = getNextWaitingTimeout(SCAN_TIME);
+                        if (nw != null)
+                            nw.connect(device);
+                    } catch (InterruptedException ignored) {
+                    }
                 }
-            }
+            }).start();
         }
     }
 
@@ -164,6 +191,7 @@ public class BluetoothTransportManager extends TransportManager {
         private byte[] key;
         private boolean active = false;
         private final UUID uuid;
+        private boolean shouldListen = true;
 
         public Transport(UUID uuid) {
             this.uuid = uuid;
@@ -181,21 +209,39 @@ public class BluetoothTransportManager extends TransportManager {
                     synchronized (slockServerSocket) {
                         if (adapter != null)
                             serverSocket = adapter.listenUsingInsecureRfcommWithServiceRecord(service.getString(R.string.app_name), uuid);
-                        lSS = serverSocket;
                     }
-                    boolean connR = true;
-                    if (lSS != null) {
-                        BluetoothSocket accepted = lSS.accept();
-                        if (!connect(accepted)) {
+                    while (BluetoothTransportManager.this.active && !active && serverSocket != null) {
+                        synchronized (slockServerSocket) {
+                            while (!shouldListen && BluetoothTransportManager.this.active && serverSocket != null)
+                                slockServerSocket.wait();
+                            if (adapter != null)
+                                serverSocket = adapter.listenUsingInsecureRfcommWithServiceRecord(service.getString(R.string.app_name), uuid);
+                            lSS = serverSocket;
+                        }
+                        if (lSS != null) {
                             try {
-                                lSS.close();
-                            } catch (IOException ignored) {
+                                BluetoothSocket accepted = lSS.accept();
+                                removeWaiting(this);
+                                String addr = getAddress(accepted.getRemoteDevice());
+                                if (addr != null)
+                                    android.util.Log.w("B-L", addr + " " + accepted.isConnected());
+                                if (connect(accepted))
+                                    return;
+                            } catch (IOException e) {
+                                addWaiting(this);
+                                service.app.showException(e);
                             }
-                            listen();
+                        } else {
+                            close();
+                            uuidQueue.add(uuid);
+                            return;
                         }
                     }
-                } catch (InterruptedException | SecurityException | IOException ignored) {
+                } catch (InterruptedException | SecurityException | IOException e) {
+                    service.app.showException(e);
                 }
+                close();
+                uuidQueue.add(uuid);
             }).start();
         }
 
@@ -206,45 +252,55 @@ public class BluetoothTransportManager extends TransportManager {
                 addWaiting(this);
                 return;
             }
-            if (serverSocket != null) {
-                synchronized (slockServerSocket) {
+            synchronized (slockServerSocket) {
+                shouldListen = false;
+                if (serverSocket != null) {
                     try {
                         serverSocket.close();
                     } catch (IOException ignored) {
                     }
-                    serverSocket = null;
                 }
             }
             try {
                 if (connect(device.createInsecureRfcommSocketToServiceRecord(uuid)))
                     return;
             } catch (IOException | SecurityException e) {
+                android.util.Log.e("B-CD", "", e);
             }
-            listen();
-            addWaiting(this);
+            synchronized (slockServerSocket) {
+                shouldListen = true;
+                slockServerSocket.notifyAll();
+            }
         }
 
         private boolean connect(BluetoothSocket socket) throws InterruptedException {
             synchronized (slockConnect) {
-                if (!socket.isConnected()) {
-                    try {
-                        BluetoothAdapter adapter = service.app.getBluetoothAdapter();
-                        if (adapter != null)
-                            adapter.cancelDiscovery();
-                        socket.connect();
-                    } catch (IOException | SecurityException e) {
-                        return false;
-                    }
-                }
-
                 deviceName = getAddress(socket.getRemoteDevice());
                 if (!deviceExists(deviceName) && !deviceBlocked(deviceName)) {
-                    removeWaiting(this);
-                    this.socket = socket;
+                    android.util.Log.w("B-C", "Attempting connection: " + deviceName);
+                    addDevice(deviceName);
+                    if (!socket.isConnected()) {
+                        try {
+                            BluetoothAdapter adapter = service.app.getBluetoothAdapter();
+                            if (adapter != null)
+                                adapter.cancelDiscovery();
+                            socket.connect();
+                        } catch (IOException | SecurityException e) {
+                            android.util.Log.e("B-C", "", e);
+                            removeDevice(deviceName);
+                            addWaiting(this);
+                            return false;
+                        }
+                    }
+                    android.util.Log.w("B-C", "Starting connection: " + deviceName);
+                    Thread handshakeErrorThread = null;
                     try {
                         Settings settings = service.loadSettings();
-                        if (settings == null)
+                        if (settings == null) {
+                            removeDevice(deviceName);
+                            addWaiting(this);
                             return false;
+                        }
                         byte[][] keyData = service.app.cryptographyProvider.GetWrapperInstance().setPublicKey(
                                         Provider.getMLKemPublicKeyBytes(settings.getPrivateKeyKEM().getPublicKey()))
                                 .wrap(random);
@@ -257,11 +313,23 @@ public class BluetoothTransportManager extends TransportManager {
                                 service.app.cryptographyProvider, service.app.authorizer,
                                 Provider.getMLKemPrivateKeyBytes(settings.getPrivateKeyKEM()),
                                 Provider.getMLDsaPrivateKeyBytes(settings.getPrivateKeyDSA()), keyData[1]);
-                        byte[] outEnc = handshakeProcessor.handshake(5000);
+                        handshakeErrorThread = new Thread(() -> {
+                            Exception err;
+                            try {
+                                while ((err = handshakeProcessor.getFirstException()) != null)
+                                    service.app.showException(err);
+                            } catch (InterruptedException ignored) {
+                            }
+                        });
+                        handshakeErrorThread.start();
+                        byte[] outEnc = handshakeProcessor.handshake(SCAN_TIME);
+                        android.util.Log.w("B-C", "Handshaked: " + deviceName +
+                                ((outEnc == null) ? "-" : "+") + (handshakeProcessor.localAuthorizeSuccess() ? "+" : "-"));
                         if (outEnc == null) {
                             if (!handshakeProcessor.localAuthorizeSuccess())
                                 blockDevice(deviceName);
                             socket.close();
+                            close();
                             return false;
                         }
                         byte[] iv = Provider.generateIV(16);
@@ -274,10 +342,14 @@ public class BluetoothTransportManager extends TransportManager {
                                 socket.close();
                             } catch (IOException ignored) {
                             }
+                            close();
                             return false;
                         }
                         r.addTransport(handshakeProcessor.getRemote(), this, handshakeProcessor.getOtherPackets());
-                        addDevice(deviceName);
+                        this.socket = socket;
+                        synchronized (slockServerSocket) {
+                            slockServerSocket.notifyAll();
+                        }
                         return true;
                     } catch (GeneralSecurityException | IOException e) {
                         service.app.showException(e);
@@ -285,7 +357,12 @@ public class BluetoothTransportManager extends TransportManager {
                             socket.close();
                         } catch (IOException ignored) {
                         }
+                        if (active)
+                            close();
                         return false;
+                    } finally {
+                        if (handshakeErrorThread != null && handshakeErrorThread.isAlive())
+                            handshakeErrorThread.interrupt();
                     }
                 } else {
                     deviceName = "";
@@ -293,6 +370,7 @@ public class BluetoothTransportManager extends TransportManager {
                         socket.close();
                     } catch (IOException ignored) {
                     }
+                    addWaiting(this);
                     return false;
                 }
             }
@@ -301,10 +379,21 @@ public class BluetoothTransportManager extends TransportManager {
         @Override
         public void send(byte[] packet) {
             try {
+                android.util.Log.w("PK_DBG_OUT", getMeta(packet));
                 out.write(packet);
             } catch (IOException e) {
+                service.app.showException(e);
                 close();
             }
+        }
+
+        private String getMeta(byte[] packet) {
+            String toret = "";
+            for (int i = 0; i < Math.min(4,packet.length); i++)
+                toret += ((packet[i] < 0) ? (int) packet[i] + 128 : packet[i]) + ",";
+            if (toret.isEmpty())
+                return "";
+            return toret.substring(0, toret.length() - 1);
         }
 
         @Override
@@ -314,8 +403,11 @@ public class BluetoothTransportManager extends TransportManager {
                     in.upgradeCipher.setKey(key);
                 return in.readNext();
             } catch (IOException e) {
+                service.app.showException(e);
                 close();
                 return new byte[0];
+            } finally {
+                android.util.Log.w("PK_DBG_IN", in.getBufferMetaString());
             }
         }
 
@@ -326,16 +418,18 @@ public class BluetoothTransportManager extends TransportManager {
                 if (serverSocket != null) {
                     try {
                         serverSocket.close();
-                    } catch (IOException e) {
+                    } catch (IOException ignored) {
                     }
                     serverSocket = null;
                 }
+                slockServerSocket.notifyAll();
             }
             if (active) {
                 active = false;
                 removeDevice(deviceName);
                 try {
-                    socket.close();
+                    if (socket != null)
+                        socket.close();
                 } catch (IOException e) {
                 }
                 uuidQueue.add(uuid);

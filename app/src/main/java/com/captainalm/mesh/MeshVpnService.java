@@ -320,11 +320,7 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
                 for (TransportManager manager : lManagers)
                     manager.purgeBlockCache();
             } /*else if (Objects.equals(intent.getAction(), IntentActions.NEW_CIRCUIT)) {
-            }*/ else {
-                TransportManager[] lManagers = managers.toArray(new TransportManager[0]);
-                for (TransportManager manager : lManagers)
-                    manager.receiveBroadcast(context, intent);
-            }
+            }*/
         }
 
         // Below Based on:

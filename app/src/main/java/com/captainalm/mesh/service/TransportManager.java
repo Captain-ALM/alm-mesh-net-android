@@ -68,9 +68,12 @@ public abstract class TransportManager {
     protected void blockDevice(String id) {
         if (!active)
             return;
+        /*
         synchronized (slockBlockedDevices) {
             blockedDevices.add(id);
-        }
+        }*/
+        if (id != null)
+            android.util.Log.w("DEBUGGING-MESH-NET-BLOCKED", id);
     }
 
     public void purgeBlockCache() {

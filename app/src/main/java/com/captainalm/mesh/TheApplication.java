@@ -137,7 +137,7 @@ public class TheApplication extends Application {
         if (settings == null || settings.isEmpty()) {
             this.settings = new Settings();
             this.settings.packetChargeSize = 100000;
-            this.settings.maxTTL = 64;
+            this.settings.maxTTL = 8;
             KeyPair kem = Provider.generateMLKemKeyPair();
             if (kem != null)
                 this.settings.setPrivateKeyKEM((MLKEMPrivateKey) kem.getPrivate());
@@ -238,7 +238,10 @@ public class TheApplication extends Application {
     }
 
     public void showException(Exception e) {
-        if (errorNotifID == null || e == null)
+        if (e == null)
+            return;
+        android.util.Log.e("DEBUGGER-MESHNET-EXCEPTION","", e);
+        if (errorNotifID == null)
             return;
         StringWriter esw = new StringWriter();
         e.printStackTrace(new PrintWriter(esw));
