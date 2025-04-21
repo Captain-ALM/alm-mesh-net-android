@@ -4,6 +4,7 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -27,6 +28,7 @@ import com.captainalm.lib.mesh.routing.Router;
 import com.captainalm.lib.mesh.routing.graphing.GraphNode;
 import com.captainalm.mesh.db.Node;
 import com.captainalm.mesh.db.Settings;
+import com.captainalm.mesh.service.BluetoothTransportManager;
 import com.captainalm.mesh.service.MeshVPN;
 import com.captainalm.mesh.service.TransportManager;
 
@@ -34,6 +36,7 @@ import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
@@ -52,10 +55,10 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
     private boolean longIntentReceiverRegistered;
 
     private Handler messenger;
-    private TheApplication app;
+    public TheApplication app;
     private String extra;
 
-    private Router router;
+    public Router router;
     private IPacketProcessor packetProcessor;
     private MeshVPN vpnTransport;
     private final List<TransportManager> managers = new ArrayList<>();
@@ -63,6 +66,7 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
     private PendingIntent settingsPIntent;
     private Thread exceptionThread;
     private Thread nodeThread;
+    public GraphNode thisNode;
 
     @Override
     public boolean handleMessage(@NonNull Message msg) {
@@ -98,8 +102,8 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
         }
 
         if (!longIntentReceiverRegistered) {
-            IntentFilter filter = new IntentFilter("");
-            // TODO:
+            IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+            // TODO: Wi-Fi Direct
             longIntentReceiver.register(filter);
             longIntentReceiverRegistered = true;
         }
@@ -147,7 +151,7 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
         }
     }
 
-    private Settings loadSettings() {
+    public Settings loadSettings() {
         List<Settings> settingsList = app.database.getSettingsDAO().getSettings();
         if (settingsList == null || settingsList.isEmpty())
             return null;
@@ -204,6 +208,7 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
                     app.showException(new Exception("VPN Start Failed!"));
                     return;
                 }
+                thisNode = app.thisNode;
                 vpnTransport = new MeshVPN(app, desc);
                 packetProcessor = new NetTransportProcessor(vpnTransport);
                 router = new Router(app.thisNode, Provider.getMLKemPrivateKeyBytes(settings.getPrivateKeyKEM()),
@@ -236,7 +241,17 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
                     }
                 });
                 nodeThread.start();
-                // TODO: Modify transport mangers list based on settings
+                managers.removeIf(manager -> manager instanceof BluetoothTransportManager && (!settings.enabledBluetooth() || !app.bluetoothAuthority));
+                boolean addBluetooth = false;
+                if (settings.enabledBluetooth() && app.bluetoothAuthority) {
+                    addBluetooth = true;
+                    for (TransportManager manager : managers)
+                        if (manager instanceof  BluetoothTransportManager)
+                            addBluetooth = false;
+                }
+                if (addBluetooth)
+                    managers.add(new BluetoothTransportManager(this));
+                // TODO: WiFi direct
                 for (TransportManager manager : managers)
                     manager.setRouter(router);
                 messenger.sendEmptyMessage(R.string.vpn_running);

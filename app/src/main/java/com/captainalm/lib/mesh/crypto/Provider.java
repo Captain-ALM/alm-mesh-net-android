@@ -207,9 +207,12 @@ public class Provider implements IProvider {
         return crypt;
     }
 
+    private final RCryptor rcrypt = new RCryptor();
+
+    // Actually a cryptor with the IV at the end (And kept) when using byte arrays
     @Override
     public ICryptor GetFixedIVCryptorInstance() {
-        return crypt;
+        return rcrypt;
     }
 
     private final IHasher hasher;

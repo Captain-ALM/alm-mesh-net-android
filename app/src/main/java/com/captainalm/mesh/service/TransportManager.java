@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 
 import com.captainalm.lib.mesh.routing.Router;
+import com.captainalm.mesh.MeshVpnService;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -21,14 +22,12 @@ public abstract class TransportManager {
     private final List<String> connectedDevices = new LinkedList<>();
     private final Object slockConnectedDevices = new Object();
     boolean active = true;
-    protected final Thread monitorThread;
-    protected final Thread scannerThread;
+    protected Thread monitorThread;
+    protected Thread scannerThread;
+    protected final MeshVpnService service;
 
-    public TransportManager(Thread monitor, Thread scanner) {
-        monitorThread = monitor;
-        scannerThread = scanner;
-        monitorThread.start();
-        scannerThread.start();
+    public TransportManager(MeshVpnService service) {
+        this.service = service;
     }
 
     protected boolean deviceExists(String id) {

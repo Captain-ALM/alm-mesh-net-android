@@ -25,8 +25,8 @@ import javax.crypto.spec.SecretKeySpec;
  * @author Alfred Manville
  */
 public class Cryptor implements ICryptor {
-    private final ThreadLocal<byte[]> IV = new ThreadLocal<>();
-    private final ThreadLocal<byte[]> symmetricKey = new ThreadLocal<>();
+    protected final ThreadLocal<byte[]> IV = new ThreadLocal<>();
+    protected final ThreadLocal<byte[]> symmetricKey = new ThreadLocal<>();
 
     @Override
     public ICryptor setKey(byte[] bytes) {
@@ -51,7 +51,8 @@ public class Cryptor implements ICryptor {
         return this.IV.get();
     }
 
-    private Cipher getCipher(int mode ,byte[] lIV) throws GeneralSecurityException {
+    @Override
+    public Cipher getCipher(int mode ,byte[] lIV) throws GeneralSecurityException {
         if (this.symmetricKey.get() == null)
             throw new GeneralSecurityException("No Key");
         try {
