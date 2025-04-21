@@ -15,7 +15,7 @@ public class BluetoothTransportManager extends TransportManager {
 
     @Override
     public void discover() {
-
+        //TODO:
     }
 
     @Override

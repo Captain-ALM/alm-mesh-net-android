@@ -1,5 +1,6 @@
 package com.captainalm.mesh;
 
+import android.Manifest;
 import android.app.Application;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -11,6 +12,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.wifi.WifiManager;
 import android.net.wifi.p2p.WifiP2pManager;
+import android.os.Build;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
@@ -96,12 +98,38 @@ public class TheApplication extends Application {
                 }
         ).build();
         cryptographyProvider = new Provider(this);
-        authorizer = new Authorizer(database);
+        authorizer = new Authorizer(this);
         errorNotifID = makeChannel(errorNotifID, NotificationManager.IMPORTANCE_MIN, getString(R.string.error_channel), getString(R.string.error_channel_desc));
         peerNotifID = makeChannel(peerNotifID, NotificationManager.IMPORTANCE_HIGH, getString(R.string.peer_channel), getString(R.string.peer_channel_desc));
         nodeInfoNotifID = makeChannel(nodeInfoNotifID, NotificationManager.IMPORTANCE_DEFAULT, getString(R.string.node_info_channel), getString(R.string.peer_channel_desc));
         vpnNotifID = makeChannel(vpnNotifID, NotificationManager.IMPORTANCE_DEFAULT, getString(R.string.vpn_channel), getString(R.string.vpn_channel_desc));
         obtainSettings();
+        checkPermissionAuthority();
+    }
+
+    private void checkPermissionAuthority() {
+        boolean bluetoothAuthority = getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && bluetoothAuthority) {
+            bluetoothAuthority = checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED
+                    && checkSelfPermission(Manifest.permission.BLUETOOTH_ADVERTISE) == PackageManager.PERMISSION_GRANTED
+                    && checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED;
+        }
+        boolean wifiDirectAuthority = getPackageManager().hasSystemFeature(PackageManager.FEATURE_WIFI_DIRECT);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && wifiDirectAuthority) {
+            wifiDirectAuthority = checkSelfPermission(Manifest.permission.NEARBY_WIFI_DEVICES) == PackageManager.PERMISSION_GRANTED;
+        }
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2) {
+            boolean perm = checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+            bluetoothAuthority = bluetoothAuthority && perm;
+            wifiDirectAuthority = wifiDirectAuthority && perm;
+        }
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            boolean perm = checkSelfPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION) == PackageManager.PERMISSION_GRANTED;
+            bluetoothAuthority = bluetoothAuthority && perm;
+            wifiDirectAuthority = wifiDirectAuthority && perm;
+        }
+        this.bluetoothAuthority = bluetoothAuthority;
+        this.wifiDirectAuthority = wifiDirectAuthority;
     }
 
     private void obtainSettings() {
@@ -220,6 +248,14 @@ public class TheApplication extends Application {
                         e.getClass() + "\n"  + e.getMessage() + "\n" + esw)).setAutoCancel(true);
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED)
             getSystemService(NotificationManager.class).notify(new Random().nextInt(8) + 100, builder.build());
+    }
+
+    public void peerRequestOperation(Context context, PeerRequest req) {
+        if (req == null)
+            return;
+        database.getPeerRequestDAO().addPeerRequest(req);
+        sendBroadcast(new Intent(IntentActions.REFRESH));
+        showPeeringOperation(context, req);
     }
 
     public void showPeeringOperation(Context context, PeerRequest req) {

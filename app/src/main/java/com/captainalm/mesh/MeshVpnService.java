@@ -48,6 +48,8 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
     private static final int DISCON_NOTIF_ID = 97;
     private RemoteIntentReceiver intentReceiver;
     private boolean intentReceiverRegistered;
+    private LongRemoteIntentReceiver longIntentReceiver;
+    private boolean longIntentReceiverRegistered;
 
     private Handler messenger;
     private TheApplication app;
@@ -81,7 +83,10 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
         if (app == null)
             return;
 
+        app.authorizer.setContext(this);
+
         intentReceiver = new RemoteIntentReceiver();
+        longIntentReceiver = new LongRemoteIntentReceiver();
 
         if (!intentReceiverRegistered) {
             IntentFilter filter = new IntentFilter(IntentActions.PURGE_BLOCKED);
@@ -90,6 +95,13 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
             filter.addAction(IntentActions.DISCOVERY);
             intentReceiver.register(filter);
             intentReceiverRegistered = true;
+        }
+
+        if (!longIntentReceiverRegistered) {
+            IntentFilter filter = new IntentFilter("");
+            // TODO:
+            longIntentReceiver.register(filter);
+            longIntentReceiverRegistered = true;
         }
 
         if (settingsPIntent == null)
@@ -102,12 +114,18 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
     public void onDestroy() {
         super.onDestroy();
         stopVPN();
+        app.authorizer.setContext(null);
         app = null;
         if (intentReceiverRegistered) {
             intentReceiver.unregister();
             intentReceiverRegistered = false;
         }
+        if (longIntentReceiverRegistered) {
+            longIntentReceiver.unregister();
+            longIntentReceiverRegistered = false;
+        }
         intentReceiver = null;
+        longIntentReceiver = null;
         for (TransportManager manager : managers)
             manager.terminate();
         managers.clear();
@@ -115,17 +133,17 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        if (intent != null && IntentActions.STOP_VPN.equals(intent.getAction())) {
+        if (intent != null && IntentActions.START_VPN.equals(intent.getAction())) {
+            notificationUpdate(R.string.vpn_starting);
+            startVPN(intent.getBooleanExtra("onion", false));
+            refreshApp();
+            return START_STICKY;
+        } else {
             extra = "";
             notificationUpdate(R.string.vpn_stopping);
             stopVPN();
             refreshApp();
             return START_NOT_STICKY;
-        } else {
-            notificationUpdate(R.string.vpn_starting);
-            startVPN(intent != null && intent.getBooleanExtra("onion", false));
-            refreshApp();
-            return START_STICKY;
         }
     }
 
@@ -231,22 +249,22 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
 
     private void stopVPN() {
         synchronized (slockVPN) {
-            if (router == null)
-                return;
-            TransportManager[] lManagers = managers.toArray(new TransportManager[0]);
-            for (TransportManager manager : lManagers)
-                manager.clearRouter();
-            router.deactivate(true);
-            if (exceptionThread != null && exceptionThread.isAlive())
-                exceptionThread.interrupt();
-            exceptionThread = null;
-            if (nodeThread != null && nodeThread.isAlive())
-                nodeThread.interrupt();
-            nodeThread = null;
-            router = null;
-            packetProcessor = null;
-            vpnTransport.close();
-            vpnTransport = null;
+            if (router != null) {
+                TransportManager[] lManagers = managers.toArray(new TransportManager[0]);
+                for (TransportManager manager : lManagers)
+                    manager.clearRouter();
+                router.deactivate(true);
+                if (exceptionThread != null && exceptionThread.isAlive())
+                    exceptionThread.interrupt();
+                exceptionThread = null;
+                if (nodeThread != null && nodeThread.isAlive())
+                    nodeThread.interrupt();
+                nodeThread = null;
+                router = null;
+                packetProcessor = null;
+                vpnTransport.close();
+                vpnTransport = null;
+            }
             if (app != null)
                 app.serviceActive = false;
             messenger.sendEmptyMessage(R.string.vpn_stopped);
@@ -287,7 +305,11 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
                 for (TransportManager manager : lManagers)
                     manager.purgeBlockCache();
             } /*else if (Objects.equals(intent.getAction(), IntentActions.NEW_CIRCUIT)) {
-            }*/
+            }*/ else {
+                TransportManager[] lManagers = managers.toArray(new TransportManager[0]);
+                for (TransportManager manager : lManagers)
+                    manager.receiveBroadcast(context, intent);
+            }
         }
 
         // Below Based on:
@@ -306,6 +328,15 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
 
         public void unregister() {
             MeshVpnService.this.unregisterReceiver(this);
+        }
+    }
+
+    private class LongRemoteIntentReceiver extends RemoteIntentReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            TransportManager[] lManagers = managers.toArray(new TransportManager[0]);
+            for (TransportManager manager : lManagers)
+                manager.receiveBroadcast(context, intent);
         }
     }
 }

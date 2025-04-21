@@ -404,7 +404,7 @@ public class MainActivity extends AppCompatActivity {
         if (!app.getBluetoothEnabled() || !app.bluetoothAuthority)
             refresh(FragmentIndicator.Unknown);
         else
-            bluetoothDiscover.launch(new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 60));
+            bluetoothDiscover.launch(new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 3600));
     }
 
     private class RemoteIntentReceiver extends BroadcastReceiver {
