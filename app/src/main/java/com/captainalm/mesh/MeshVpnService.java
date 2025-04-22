@@ -31,6 +31,7 @@ import com.captainalm.mesh.db.Node;
 import com.captainalm.mesh.db.Settings;
 import com.captainalm.mesh.service.BluetoothTransportManager;
 import com.captainalm.mesh.service.MeshVPN;
+import com.captainalm.mesh.service.TCPTransportManager;
 import com.captainalm.mesh.service.TransportManager;
 
 import java.net.Inet6Address;
@@ -106,6 +107,7 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
             IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
             filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
             filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
+            filter.addAction(IntentActions.ANNOUNCE);
             // TODO: Wi-Fi Direct
             longIntentReceiver.register(filter);
             longIntentReceiverRegistered = true;
@@ -245,6 +247,7 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
                 });
                 nodeThread.start();
                 managers.removeIf(manager -> manager instanceof BluetoothTransportManager && (!settings.enabledBluetooth() || !app.bluetoothAuthority));
+                managers.removeIf(manager -> manager instanceof TCPTransportManager && (!settings.enabledWiFiDirect() || !app.wifiDirectAuthority));
                 boolean addBluetooth = false;
                 if (settings.enabledBluetooth() && app.bluetoothAuthority) {
                     addBluetooth = true;
@@ -254,6 +257,15 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
                 }
                 if (addBluetooth)
                     managers.add(new BluetoothTransportManager(this));
+                boolean addWifiDirect = false;
+                if (settings.enabledWiFiDirect() && app.wifiDirectAuthority) {
+                    addWifiDirect = true;
+                    for (TransportManager manager : managers)
+                        if (manager instanceof TCPTransportManager)
+                            addWifiDirect = false;
+                }
+                if (addWifiDirect) // Not relly wifi direct, just a tester
+                    managers.add(new TCPTransportManager(this));
                 // TODO: WiFi direct
                 for (TransportManager manager : managers)
                     manager.setRouter(router);

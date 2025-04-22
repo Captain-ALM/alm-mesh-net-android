@@ -402,15 +402,6 @@ public class BluetoothTransportManager extends TransportManager {
             }
         }
 
-        private String getMeta(byte[] packet) {
-            String toret = "";
-            for (int i = 0; i < Math.min(12,packet.length); i++)
-                toret += ((packet[i] < 0) ? (int) packet[i] + 256 : packet[i]) + ",";
-            if (toret.isEmpty())
-                return "";
-            return toret.substring(0, toret.length() - 1);
-        }
-
         @Override
         public byte[] receive() {
             try {
@@ -473,6 +464,15 @@ public class BluetoothTransportManager extends TransportManager {
             closeable.close();
         } catch (IOException ignored) {
         }
+    }
+
+    private String getMeta(byte[] packet) {
+        String toret = "";
+        for (int i = 0; i < Math.min(12,packet.length); i++)
+            toret += ((packet[i] < 0) ? (int) packet[i] + 256 : packet[i]) + ",";
+        if (toret.isEmpty())
+            return "";
+        return toret.substring(0, toret.length() - 1);
     }
 
     @SuppressLint("MissingPermission")
