@@ -166,11 +166,20 @@
                         android:layout_gravity="fill_horizontal">
 
                         <Button
+                            android:id="@+id/buttonAnnounce"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_vertical"
+                            android:layout_weight="0.5"
+                            android:text="@string/settings_announce"
+                            android:textAppearance="@style/TextAppearance.AppCompat.Medium" />
+
+                        <Button
                             android:id="@+id/buttonDiscoverable"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_gravity="center_vertical"
-                            android:layout_weight="1"
+                            android:layout_weight="0.5"
                             android:text="@string/settings_discover"
                             android:textAppearance="@style/TextAppearance.AppCompat.Medium" />
 
@@ -404,6 +413,23 @@
                             android:layout_weight="1"
                             android:minHeight="48dp"
                             android:text="@string/settings_wifi_direct"
+                            android:textAppearance="@style/TextAppearance.AppCompat.Small"
+                            android:visibility="visible" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="fill_horizontal">
+
+                        <androidx.appcompat.widget.SwitchCompat
+                            android:id="@+id/switchTest"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_vertical"
+                            android:layout_weight="1"
+                            android:minHeight="48dp"
+                            android:text="@string/settings_test"
                             android:textAppearance="@style/TextAppearance.AppCompat.Small"
                             android:visibility="visible" />
                     </LinearLayout>

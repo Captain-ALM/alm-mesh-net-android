@@ -4,6 +4,7 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -103,6 +104,8 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
 
         if (!longIntentReceiverRegistered) {
             IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+            filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+            filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
             // TODO: Wi-Fi Direct
             longIntentReceiver.register(filter);
             longIntentReceiverRegistered = true;
@@ -269,6 +272,8 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
                 for (TransportManager manager : lManagers)
                     manager.clearRouter();
                 router.deactivate(true);
+                for (TransportManager manager : managers)
+                    manager.setRouter(null);
                 if (exceptionThread != null && exceptionThread.isAlive())
                     exceptionThread.interrupt();
                 exceptionThread = null;

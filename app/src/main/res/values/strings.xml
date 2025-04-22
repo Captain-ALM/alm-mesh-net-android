@@ -54,7 +54,9 @@
     <string name="settings_new_circuit">New Circuit</string>
     <string name="settings_bluetooth">Bluetooth Transport</string>
     <string name="settings_wifi_direct">Wi-Fi Direct Transport</string>
-    <string name="settings_discover">Discover Devices</string>
+    <string name="settings_discover">Discover</string>
+    <string name="settings_announce">Announce</string>
+    <string name="settings_test">Test Mode</string>
 
     <string name="vpn_starting">VPN Starting…</string>
     <string name="vpn_stopping">VPN Stopping…</string>

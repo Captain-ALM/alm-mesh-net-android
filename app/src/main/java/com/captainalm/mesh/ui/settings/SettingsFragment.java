@@ -98,11 +98,15 @@ public class SettingsFragment extends Fragment implements IRefreshable {
                 ma.triggerWiFiDirectEnable();
             }
         });
-        binding.buttonDiscoverable.setOnClickListener(v -> {
+        binding.buttonAnnounce.setOnClickListener(v -> {
             if (container instanceof MainActivity ma) {
-                app.sendBroadcast(new Intent(IntentActions.DISCOVERY));
-                ma.triggerBluetoothDiscoverable();
+                app.sendBroadcast(new Intent(IntentActions.ANNOUNCE));
+                if (app.settings.enabledBluetooth())
+                    ma.triggerBluetoothDiscoverable();
             }
+        });
+        binding.buttonDiscoverable.setOnClickListener(v -> {
+            app.sendBroadcast(new Intent(IntentActions.DISCOVERY));
         });
     }
 
@@ -116,6 +120,7 @@ public class SettingsFragment extends Fragment implements IRefreshable {
         if (app == null || binding == null || app.settings == null || app.thisNode == null)
             return;
         binding.buttonDiscoverable.setEnabled(app.serviceActive);
+        binding.buttonAnnounce.setEnabled(app.serviceActive);
         Node c = new Node(app.thisNode);
         binding.textViewSettingsCheckCode.setText(Integer.toString(c.getCheckCode()));
         binding.textViewSettingsID.setText(c.ID);
@@ -129,6 +134,7 @@ public class SettingsFragment extends Fragment implements IRefreshable {
         binding.editTextRecSig.setText(app.settings.recommendedSig);
         binding.switchGateway.setChecked(app.settings.gatewayMode());
         binding.switchOnion.setChecked(app.settings.etherealPrivateKeyKEM != null && app.settings.etherealPrivateKeyDSA != null);
+        binding.switchTest.setChecked(app.settings.enabledTestMode());
         binding.switchBluetooth.setChecked(app.settings.enabledBluetooth() && app.getBluetoothEnabled());
         binding.switchWiFiDirect.setChecked(app.settings.enabledWiFiDirect() && app.getWiFiEnabled());
         binding.buttonSettingsNewCircuit.setEnabled(app.serviceActive && binding.switchOnion.isChecked());
@@ -141,6 +147,7 @@ public class SettingsFragment extends Fragment implements IRefreshable {
         binding.editTextRecSig.setEnabled(!app.serviceActive);
         binding.switchGateway.setEnabled(!app.serviceActive);
         binding.switchOnion.setEnabled(!app.serviceActive);
+        binding.switchTest.setEnabled(!app.serviceActive);
         binding.switchBluetooth.setEnabled(!app.serviceActive && app.getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH));
         binding.switchWiFiDirect.setEnabled(!app.serviceActive && app.getPackageManager().hasSystemFeature(PackageManager.FEATURE_WIFI_DIRECT));
     }
@@ -157,6 +164,7 @@ public class SettingsFragment extends Fragment implements IRefreshable {
                 app.settings.maxTTL = 1;
             if (app.settings.maxTTL > 254)
                 app.settings.maxTTL = 254;
+            app.settings.setTestMode(binding.switchTest.isChecked());
             app.settings.encryptionMode = binding.spinnerEncMode.getSelectedItemPosition();
             app.settings.excludedAddresses = binding.editTextExcAddr.getText().toString();
             app.settings.recommendedSigPublicKey = binding.editTextRecKey.getText().toString();

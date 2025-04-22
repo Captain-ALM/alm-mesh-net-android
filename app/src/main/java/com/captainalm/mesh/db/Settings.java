@@ -144,6 +144,15 @@ public class Settings {
     }
 
     @Ignore
+    public void setTestMode(boolean enabled) {
+        if (enabled)
+            transports |= 1;
+        else
+            transports &= ~(1);
+
+    }
+
+    @Ignore
     public void setWiFiDirect(boolean enabled) {
         if (enabled)
             transports |= 1 << 1;
@@ -158,6 +167,11 @@ public class Settings {
             transports |= 1 << 2;
         else
             transports &= ~(1 << 2);
+    }
+
+    @Ignore
+    public boolean enabledTestMode() {
+        return ((transports) & 1) == 1;
     }
 
     @Ignore

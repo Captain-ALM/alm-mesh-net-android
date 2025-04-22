@@ -13,4 +13,5 @@ public class IntentActions {
     public static final String ACTIVITY_UP = "com.captainalm.mesh.RELAUNCHED";
     public static final String PURGE_BLOCKED = "com.captainalm.mesh.PURGE";
     public static final String DISCOVERY = "com.captainalm.mesh.DISCOVERY";
+    public static final String ANNOUNCE = "com.captainalm.mesh.ANNOUNCE";
 }
