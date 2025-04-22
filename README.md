@@ -10,5 +10,6 @@ Utilizes the Android Core/X libraries (Apache 2.0) and Bouncy Castle for PQC (MI
 
 Build by importing in android studio, the apk submitted (And in the root folder of the repo) is signed with my key.
 Make sure the app/lib folder has the built dependancy of the mesh net library.
+The mesh net library in the app/lib folder at the moment is the version without the test added.
 
 Check the beta branch in the long future for a better working copy developed outside of University.
