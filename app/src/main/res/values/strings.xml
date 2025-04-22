@@ -7,7 +7,10 @@
     <string name="nav_header_subtitle">Alfred.Manville@city.ac.uk</string>
     <string name="nav_header_desc">Navigation header</string>
     <string name="action_settings">Settings</string>
-    <string name="about_info">Mesh Net (Lib) © Alfred Manville BSD-3-Clause License</string>
+    <string name="about_info">Mesh Net (Lib) © Alfred Manville BSD-3-Clause License
+        Bouncy Castle © The Legion of the Bouncy Castle Inc MIT License
+        Android Core/x Libraries © Google Inc. and Contributors MIT License
+    </string>
 
     <string name="menu_settings">Settings</string>
     <string name="menu_node_browser">Node Topology</string>

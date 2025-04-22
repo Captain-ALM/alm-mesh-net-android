@@ -36,7 +36,7 @@ public abstract class BaseIDEntity {
         byte code = 0;
         byte[] cID = getID();
         for (byte b : cID) code += b;
-        return (code < 0) ? code + 128: code;
+        return (code < 0) ? code + 256: code;
     }
 
     @Ignore

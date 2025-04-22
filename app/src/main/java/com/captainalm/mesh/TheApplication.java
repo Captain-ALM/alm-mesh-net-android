@@ -69,6 +69,7 @@ public class TheApplication extends Application {
     public boolean wifiDirectAuthority;
     private final Object slockBluetooth = new Object();
     private final Object slockWifi = new Object();
+    private Thread testingPeering; // Test Code
 
     private final Object slockWifiP2P = new Object();
 
@@ -147,8 +148,8 @@ public class TheApplication extends Application {
             database.getSettingsDAO().addSettings(this.settings);
         } else
             this.settings = settings.get(0);
-        //cryptographyProvider.selfTest(this.settings.getPrivateKeyKEM(),
-        //        this.settings.getPrivateKeyDSA()); // Self test
+        cryptographyProvider.selfTest(this.settings.getPrivateKeyKEM(),
+                this.settings.getPrivateKeyDSA()); // Self test
         setThisNodeFromSettings();
     }
 
@@ -215,10 +216,38 @@ public class TheApplication extends Application {
             serviceActive = false;
             return;
         }
+        if (settings.enabledTestMode()) {
+            if (testingPeering == null) {
+                testingPeering = new Thread(() -> {
+                    Random r = new Random();
+                    while (serviceActive) {
+                        try {
+                            Thread.sleep((5 + r.nextInt(55))*1000);
+                            byte[] rID = new byte[32];
+                            r.nextBytes(rID);
+                            PeerRequest req = new PeerRequest(rID);
+                            database.getPeerRequestDAO().addPeerRequest(req);
+                            showPeeringOperation(getApplicationContext(), req);
+                            sendBroadcast(new Intent(IntentActions.REFRESH));
+                        } catch (InterruptedException ignored) {
+                            return;
+                        }
+                    }
+                });
+                testingPeering.start();
+            }
+        }
         startForegroundService(new Intent(context, MeshVpnService.class).setAction(IntentActions.START_VPN).putExtra("onion", true));
     }
 
     public void stopService(Context context) {
+        if (settings.enabledTestMode()) {
+            if (testingPeering != null) {
+                if (testingPeering.isAlive())
+                    testingPeering.interrupt();
+                testingPeering = null;
+            }
+        }
         startForegroundService(new Intent(context, MeshVpnService.class).setAction(IntentActions.STOP_VPN));
     }
 

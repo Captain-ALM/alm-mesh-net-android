@@ -76,22 +76,34 @@ public class Provider implements IProvider {
             byte[] key = sharedAndWrapped[0];
             byte[] wrapped = sharedAndWrapped[1];
             byte[] unwrapped = unwrapper.setPrivateKey(getMLKemPrivateKeyBytes(kem)).unwrap(wrapped);
-            if (!Arrays.equals(key, unwrapped))
+            if (!Arrays.equals(key, unwrapped)) {
+                android.util.Log.e("PROVIDER", "Unwrapped data not the same.");
                 throw new Exception("Unwrapped data not the same.");
+            } else
+                android.util.Log.e("PROVIDER", "key (un)wrap succeeded");
             byte[] encrypted = cryptor.setKey(key).encrypt(data);
-            if (!Arrays.equals(hasher.hash(cryptor.decrypt(encrypted)), dataHash))
+            if (!Arrays.equals(hasher.hash(cryptor.decrypt(encrypted)), dataHash)) {
+                android.util.Log.e("PROVIDER", "Decrypted data not the same.");
                 throw new Exception("Decrypted data not the same.");
+            } else
+                android.util.Log.e("PROVIDER", "chacha20 (en/de)crypt succeeded");
             byte[] encrypted2 = new byte[32784];
             ByteBufferOverwriteOutputStream os = new ByteBufferOverwriteOutputStream(encrypted2, 0, encrypted2.length, false);
             cryptor.setKey(wrapped).encryptStream(new ByteArrayInputStream(data2), os);
             byte[] decrypted = new byte[32768];
             os = new ByteBufferOverwriteOutputStream(decrypted, 0, decrypted.length, false);
             cryptor.decryptStream(new ByteArrayInputStream(encrypted2), os);
-            if (!Arrays.equals(hasher.hash(decrypted), data2Hash))
+            if (!Arrays.equals(hasher.hash(decrypted), data2Hash)) {
+                android.util.Log.e("PROVIDER",  "Decrypted streamed data not the same.");
                 throw new Exception("Decrypted streamed data not the same.");
+            } else
+                android.util.Log.e("PROVIDER", "Streamed chacha20 (en/de)crypt succeeded");
             byte[] signature = signer.setPrivateKey(getMLDsaPrivateKeyBytes(dsa)).sign(new ByteArrayInputStream(dataHash));
-            if (!signer.setPublicKey(getMLDsaPublicKeyBytes(dsa.getPublicKey())).verify(dataHash, signature))
+            if (!signer.setPublicKey(getMLDsaPublicKeyBytes(dsa.getPublicKey())).verify(dataHash, signature)) {
+                android.util.Log.e("PROVIDER", "Signature test failed.");
                 throw new Exception("Signature test failed.");
+            } else
+                android.util.Log.e("PROVIDER", "Signature test succeeded");
         } catch (Exception e) {
             if (context != null)
                 context.showException(e);

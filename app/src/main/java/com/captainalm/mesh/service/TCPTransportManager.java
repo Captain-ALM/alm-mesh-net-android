@@ -101,7 +101,7 @@ public class TCPTransportManager extends TransportManager {
                         }
                     }
                     for (String tNet : targNetworks) {
-                        for (int b = 130; b <= 135; b++) {
+                        for (int b = 0; b <= 255; b++) {
                             String tAddr = tNet + "." + b;
                             if (!myAddresses.contains(tAddr)) {
                                 try {
