@@ -9,7 +9,7 @@
     <string name="action_settings">Settings</string>
     <string name="about_info">Mesh Net (Lib) © Alfred Manville BSD-3-Clause License
         Bouncy Castle © The Legion of the Bouncy Castle Inc MIT License
-        Android Core/x Libraries © Google Inc. and Contributors MIT License
+        Android Core/x Libraries © Google Inc. and Contributors Apache 2.0
     </string>
 
     <string name="menu_settings">Settings</string>
