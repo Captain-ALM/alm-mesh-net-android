@@ -8,7 +8,9 @@ import android.net.LinkProperties;
 import android.net.Network;
 
 import com.captainalm.lib.mesh.crypto.Provider;
+import com.captainalm.lib.mesh.crypto.StaticCryptor;
 import com.captainalm.lib.mesh.handshake.HandshakeProcessor;
+import com.captainalm.lib.mesh.packets.Packet;
 import com.captainalm.lib.mesh.packets.PacketBytesInputStream;
 import com.captainalm.lib.mesh.routing.Router;
 import com.captainalm.lib.mesh.transport.INetTransport;
@@ -41,7 +43,7 @@ public class TCPTransportManager extends TransportManager {
     private ServerSocket sSocket;
     private boolean listen;
     private final int PORT = 30909;
-    private final int TIMEOUT = 5000;
+    private final int TIMEOUT = 10000;
     private final List<String> allowedNetworks = new ArrayList<>();
 
     public TCPTransportManager(MeshVpnService service) {
@@ -74,43 +76,45 @@ public class TCPTransportManager extends TransportManager {
         });
         monitorThread.start();
         scannerThread = new Thread(() -> {
-            Object slockL = new Object();
-            synchronized (slockL) {
-                try {
-                    slockL.wait();
-                } catch (InterruptedException ignored) {
-                }
-                ConnectivityManager cm = (ConnectivityManager) service.getSystemService(Context.CONNECTIVITY_SERVICE);
-                if (cm != null) {
-                    List<String> targNetworks = new ArrayList<>();
-                    List<String> myAddresses = new ArrayList<>();
-                    Network[] networks = cm.getAllNetworks();
-                    for (Network n : networks) {
-                        LinkProperties lp = cm.getLinkProperties(n);
-                        if (lp != null) {
-                             List<LinkAddress> addrs = lp.getLinkAddresses();
-                             for (LinkAddress addr : addrs) {
-                                 String addrT = addr.getAddress().getHostAddress();
-                                 if (addrT == null)
-                                     continue;
-                                 myAddresses.add(addrT);
-                                 for (String c : allowedNetworks)
-                                     if (addrT.startsWith(c))
-                                         targNetworks.add(c);
-                             }
-                        }
+            while (active) {
+                Object slockL = new Object();
+                synchronized (slockL) {
+                    try {
+                        slockL.wait();
+                    } catch (InterruptedException ignored) {
                     }
-                    for (String tNet : targNetworks) {
-                        for (int b = 0; b <= 255; b++) {
-                            String tAddr = tNet + "." + b;
-                            if (!myAddresses.contains(tAddr)) {
-                                try {
-                                    Socket s = new Socket();
-                                    s.bind(new InetSocketAddress(0));
-                                    service.protect(s);
-                                    s.connect(new InetSocketAddress(tAddr, PORT), 5000);
-                                    connect(s);
-                                } catch (IOException ignored) {
+                    ConnectivityManager cm = (ConnectivityManager) service.getSystemService(Context.CONNECTIVITY_SERVICE);
+                    if (cm != null) {
+                        List<String> targNetworks = new ArrayList<>();
+                        List<String> myAddresses = new ArrayList<>();
+                        Network[] networks = cm.getAllNetworks();
+                        for (Network n : networks) {
+                            LinkProperties lp = cm.getLinkProperties(n);
+                            if (lp != null) {
+                                List<LinkAddress> addrs = lp.getLinkAddresses();
+                                for (LinkAddress addr : addrs) {
+                                    String addrT = addr.getAddress().getHostAddress();
+                                    if (addrT == null)
+                                        continue;
+                                    myAddresses.add(addrT);
+                                    for (String c : allowedNetworks)
+                                        if (addrT.startsWith(c))
+                                            targNetworks.add(c);
+                                }
+                            }
+                        }
+                        for (String tNet : targNetworks) {
+                            for (int b = 130; b <= 135; b++) {
+                                String tAddr = tNet + "." + b;
+                                if (!myAddresses.contains(tAddr)) {
+                                    try {
+                                        Socket s = new Socket();
+                                        s.bind(new InetSocketAddress(0));
+                                        service.protect(s);
+                                        s.connect(new InetSocketAddress(tAddr, PORT), 5000);
+                                        connect(s);
+                                    } catch (IOException ignored) {
+                                    }
                                 }
                             }
                         }
@@ -147,7 +151,7 @@ public class TCPTransportManager extends TransportManager {
                                     Provider.getMLKemPublicKeyBytes(settings.getPrivateKeyKEM().getPublicKey()))
                             .wrap(random);
                     transport.key = keyData[0];
-                    transport.in.upgradeCipher = service.app.cryptographyProvider.GetCryptorInstance();
+                    transport.in.upgradeCipher = new StaticCryptor().setKey(transport.key);
                     HandshakeProcessor handshakeProcessor = new HandshakeProcessor(service.app.thisNode, transport,
                             service.app.cryptographyProvider, service.app.authorizer,
                             Provider.getMLKemPrivateKeyBytes(settings.getPrivateKeyKEM()),
@@ -171,10 +175,6 @@ public class TCPTransportManager extends TransportManager {
                         transport.close();
                         return;
                     }
-                    byte[] iv = Provider.generateIV(16);
-                    transport.out.write(iv);
-                    transport.out = new CipherOutputStream(transport.out, service.app.cryptographyProvider.GetCryptorInstance()
-                            .setKey(outEnc).getCipher(Cipher.ENCRYPT_MODE, iv));
                     Router r = getRouter();
                     if (r == null) {
                         safeCloseSocket(socket);
@@ -246,6 +246,8 @@ public class TCPTransportManager extends TransportManager {
         public OutputStream out;
         private final Socket socket;
         public byte[] key;
+        public byte[] outEnc;
+        private boolean nextWriteUpgrades = false;
         private boolean active = true;
 
         public Transport(Socket socket, String device) throws IOException {
@@ -260,9 +262,16 @@ public class TCPTransportManager extends TransportManager {
             if (!active)
                 return;
             try {
-                android.util.Log.w("PK_DBG_OUT", getMeta(packet));
+                if (nextWriteUpgrades) {
+                    nextWriteUpgrades = false;
+                    byte[] iv = Provider.generateIV(16);
+                    out.write(iv);
+                    out = new CipherOutputStream(out, new StaticCryptor()
+                            .setKey(outEnc).getCipher(Cipher.ENCRYPT_MODE, iv));
+                }
+                android.util.Log.w("PK_DBG_OUT", packet.length + "#-#" + Packet.getPacketFromBytes(packet).getPacketSize() + "#-#" + getMeta(packet));
                 out.write(packet);
-            } catch (IOException e) {
+            } catch (IOException | GeneralSecurityException e) {
                 service.app.showException(e);
                 close();
             }
@@ -271,8 +280,6 @@ public class TCPTransportManager extends TransportManager {
         @Override
         public byte[] receive() {
             try {
-                if (!in.isUpgraded())
-                    in.upgradeCipher.setKey(key);
                 return in.readNext();
             } catch (IOException e) {
                 service.app.showException(e);
@@ -286,6 +293,7 @@ public class TCPTransportManager extends TransportManager {
         @Override
         public void close() {
             if (active) {
+                removeDevice(device);
                 active = false;
                 safeClose(in);
                 safeClose(out);
@@ -296,6 +304,15 @@ public class TCPTransportManager extends TransportManager {
         @Override
         public boolean isActive() {
             return active;
+        }
+
+        @Override
+        public void upgrade(byte[] oKey) {
+            if (!in.isUpgraded()) {
+                outEnc = oKey;
+                in.upgrade();
+                nextWriteUpgrades = true;
+            }
         }
     }
 

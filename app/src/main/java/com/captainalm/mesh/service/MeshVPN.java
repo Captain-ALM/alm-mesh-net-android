@@ -80,4 +80,8 @@ public final class MeshVPN implements INetTransport  {
     public boolean isActive() {
         return active;
     }
+
+    @Override
+    public void upgrade(byte[] ignored) {
+    }
 }

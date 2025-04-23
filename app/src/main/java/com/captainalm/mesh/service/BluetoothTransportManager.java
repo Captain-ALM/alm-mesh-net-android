@@ -9,6 +9,7 @@ import android.content.Context;
 import android.content.Intent;
 
 import com.captainalm.lib.mesh.crypto.Provider;
+import com.captainalm.lib.mesh.crypto.StaticCryptor;
 import com.captainalm.lib.mesh.handshake.HandshakeProcessor;
 import com.captainalm.lib.mesh.packets.PacketBytesInputStream;
 import com.captainalm.lib.mesh.routing.Router;
@@ -45,6 +46,7 @@ public class BluetoothTransportManager extends TransportManager {
     private final BlockingQueue<BluetoothDevice> foundQueue = new LinkedBlockingQueue<>();
     private final Object slockWaiting = new Object();
     private final int SCAN_TIME = 5000;
+    private final int TIMEOUT = 10000;
     private final Thread discvFinishThread;
 
     @SuppressLint("MissingPermission")
@@ -194,14 +196,18 @@ public class BluetoothTransportManager extends TransportManager {
             scannerThread.interrupt();
     }
 
+    @SuppressLint("MissingPermission")
     @Override
     public void receiveBroadcast(Context context, Intent intent) {
         if (BluetoothDevice.ACTION_FOUND.equals(intent.getAction())) {
             BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-            String addr = getAddress(device);
-            if (addr != null)
+            if (device == null)
+                return;
+            if (device.getType() == BluetoothDevice.DEVICE_TYPE_CLASSIC || device.getType() == BluetoothDevice.DEVICE_TYPE_DUAL) {
+                String addr = getAddress(device);
                 android.util.Log.w("B-RB-FOUND", addr);
-            foundQueue.add(device);
+                foundQueue.add(device);
+            }
         } else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(intent.getAction())) {
             if (discvFinishThread.isAlive())
                 discvFinishThread.interrupt();
@@ -220,6 +226,8 @@ public class BluetoothTransportManager extends TransportManager {
         private boolean active = false;
         private final UUID uuid;
         private boolean shouldListen = true;
+        private boolean nextWriteUpgrades = false;
+        public byte[] outEnc;
 
         public Transport(UUID uuid) {
             this.uuid = uuid;
@@ -329,7 +337,7 @@ public class BluetoothTransportManager extends TransportManager {
                                 .wrap(random);
                         key = keyData[0];
                         in = new PacketBytesInputStream(socket.getInputStream());
-                        in.upgradeCipher = service.app.cryptographyProvider.GetCryptorInstance();
+                        in.upgradeCipher = new StaticCryptor().setKey(key);
                         out = socket.getOutputStream();
                         active = true;
                         HandshakeProcessor handshakeProcessor = new HandshakeProcessor(service.app.thisNode, this,
@@ -345,7 +353,7 @@ public class BluetoothTransportManager extends TransportManager {
                             }
                         });
                         handshakeErrorThread.start();
-                        byte[] outEnc = handshakeProcessor.handshake(SCAN_TIME);
+                        byte[] outEnc = handshakeProcessor.handshake(TIMEOUT);
                         android.util.Log.w("B-C", "Handshaked: " + deviceName +
                                 ((outEnc == null) ? "-" : "+") + (handshakeProcessor.localAuthorizeSuccess() ? "+" : "-"));
                         if (outEnc == null) {
@@ -357,7 +365,7 @@ public class BluetoothTransportManager extends TransportManager {
                         }
                         byte[] iv = Provider.generateIV(16);
                         out.write(iv);
-                        out = new CipherOutputStream(out, service.app.cryptographyProvider.GetCryptorInstance()
+                        out = new CipherOutputStream(out, new StaticCryptor()
                                 .setKey(outEnc).getCipher(Cipher.ENCRYPT_MODE, iv));
                         Router r = getRouter();
                         if (r == null) {
@@ -394,9 +402,21 @@ public class BluetoothTransportManager extends TransportManager {
         @Override
         public void send(byte[] packet) {
             try {
+                if (nextWriteUpgrades) {
+                    nextWriteUpgrades = false;
+                    byte[] iv = Provider.generateIV(16);
+                    out.write(iv);
+                    out = new CipherOutputStream(out, new StaticCryptor()
+                            .setKey(outEnc).getCipher(Cipher.ENCRYPT_MODE, iv));
+                }
                 android.util.Log.w("PK_DBG_OUT", getMeta(packet));
-                out.write(packet);
-            } catch (IOException e) {
+                int pos = 0;
+                while (pos < packet.length) {
+                    int ll = Math.min(800, packet.length - pos);
+                    out.write(packet, pos, ll);
+                    pos += ll;
+                }
+            } catch (IOException | GeneralSecurityException e) {
                 service.app.showException(e);
                 close();
             }
@@ -405,8 +425,6 @@ public class BluetoothTransportManager extends TransportManager {
         @Override
         public byte[] receive() {
             try {
-                if (!in.isUpgraded())
-                    in.upgradeCipher.setKey(key);
                 return in.readNext();
             } catch (IOException e) {
                 service.app.showException(e);
@@ -440,6 +458,15 @@ public class BluetoothTransportManager extends TransportManager {
         @Override
         public boolean isActive() {
             return active;
+        }
+
+        @Override
+        public void upgrade(byte[] oKey) {
+            if (!in.isUpgraded()) {
+                outEnc = oKey;
+                in.upgrade();
+                nextWriteUpgrades = true;
+            }
         }
     }
 

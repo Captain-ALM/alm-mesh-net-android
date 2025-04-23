@@ -68,10 +68,10 @@ public abstract class TransportManager {
     protected void blockDevice(String id) {
         if (!active)
             return;
-        synchronized (slockBlockedDevices) {
+        /*synchronized (slockBlockedDevices) {
             if (!blockedDevices.contains(id))
                 blockedDevices.add(id);
-        }
+        }*/
         if (id != null)
             android.util.Log.w("DEBUGGING-MESH-NET-BLOCKED", id);
     }

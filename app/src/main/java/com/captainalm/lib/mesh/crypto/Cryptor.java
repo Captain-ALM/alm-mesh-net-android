@@ -53,12 +53,12 @@ public class Cryptor implements ICryptor {
 
     @Override
     public Cipher getCipher(int mode ,byte[] lIV) throws GeneralSecurityException {
-        if (this.symmetricKey.get() == null)
+        if (this.getKey() == null)
             throw new GeneralSecurityException("No Key");
         try {
             Cipher cc = Cipher.getInstance("ChaCha20", BouncyCastleProvider.PROVIDER_NAME);
             IvParameterSpec ivp = new IvParameterSpec(lIV, 0, 12);
-            cc.init(mode, new SecretKeySpec(this.symmetricKey.get() ,"ChaCha20"), ivp);
+            cc.init(mode, new SecretKeySpec(this.getKey() ,"ChaCha20"), ivp);
             return cc;
         } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidAlgorithmParameterException | InvalidKeyException e) {
             throw e;
@@ -71,7 +71,7 @@ public class Cryptor implements ICryptor {
             return 0;
         int w = 0;
         byte[] lIV;
-        if (this.IV.get() == null) {
+        if (getIV() == null) {
             lIV = Provider.generateIV(12);
             outputStream.write(lIV);
             w += 12;
@@ -79,7 +79,7 @@ public class Cryptor implements ICryptor {
             w += 4;
             outputStream.flush();
         } else
-            lIV = this.IV.get();
+            lIV = this.getIV();
         OutputStream cos = new CipherOutputStream(outputStream, getCipher(Cipher.ENCRYPT_MODE, lIV));
         cos.write(bytes);
         cos.flush();
@@ -94,14 +94,14 @@ public class Cryptor implements ICryptor {
         byte[] buff;
         byte[] lIV;
         int startIndex = 0;
-        if (this.IV.get() == null) {
+        if (getIV() == null) {
             buff = new byte[bytes.length + 16];
             lIV = Provider.generateIV(12);
             System.arraycopy(lIV, 0, buff, 0, 12);
             startIndex = 16;
         } else {
             buff = new byte[bytes.length];
-            lIV = this.IV.get();
+            lIV = this.getIV();
         }
         getCipher(Cipher.ENCRYPT_MODE, lIV).doFinal(bytes, 0, bytes.length, buff, startIndex);
         return buff;
@@ -117,13 +117,13 @@ public class Cryptor implements ICryptor {
         if (inputStream == null || outputStream == null)
             return;
         byte[] lIV;
-        if (this.IV.get() == null) {
+        if (this.getIV() == null) {
             lIV = Provider.generateIV(12);
             outputStream.write(lIV);
             outputStream.write(new byte[4]);
             outputStream.flush();
         } else
-            lIV = this.IV.get();
+            lIV = this.getIV();
         OutputStream cos = new CipherOutputStream(outputStream, getCipher(Cipher.ENCRYPT_MODE, lIV));
         InputStreamTransfer.streamTransfer(inputStream, cos);
     }
@@ -132,7 +132,7 @@ public class Cryptor implements ICryptor {
     public byte[] decryptFromStream(InputStream inputStream, int i) throws IOException, GeneralSecurityException {
         if (inputStream == null)
             return new byte[0];
-        byte[] lIV = IV.get();
+        byte[] lIV = getIV();
         if (lIV == null) {
             if (i < 16) {
                 inputStream.skip(i);
@@ -144,7 +144,7 @@ public class Cryptor implements ICryptor {
                 return new byte[0];
         }
         InputStream cis = new CipherInputStream(inputStream, getCipher(Cipher.DECRYPT_MODE, lIV));
-        byte[] buff = new byte[(IV.get() == null) ? i - 16 : i];
+        byte[] buff = new byte[(getIV() == null) ? i - 16 : i];
         int idx = 0;
         while (idx < i) {
             int n = cis.read(buff, idx, buff.length - idx);
@@ -159,15 +159,15 @@ public class Cryptor implements ICryptor {
     public byte[] decrypt(byte[] bytes) throws GeneralSecurityException {
         if (bytes == null)
             return new byte[0];
-        byte[] lIV = IV.get();
+        byte[] lIV = getIV();
         if (lIV == null) {
             if (bytes.length < 16)
                 return new byte[0];
             lIV = new byte[16];
             System.arraycopy(bytes, 0, lIV, 0, 16);
         }
-        byte[] buff = new byte[(IV.get() == null) ? bytes.length - 16 : bytes.length];
-        getCipher(Cipher.DECRYPT_MODE, lIV).doFinal(bytes, (IV.get() == null) ? 16 : 0, buff.length, buff, 0);
+        byte[] buff = new byte[(getIV() == null) ? bytes.length - 16 : bytes.length];
+        getCipher(Cipher.DECRYPT_MODE, lIV).doFinal(bytes, (getIV() == null) ? 16 : 0, buff.length, buff, 0);
         return buff;
     }
 
@@ -180,7 +180,7 @@ public class Cryptor implements ICryptor {
     public void decryptStream(InputStream inputStream, OutputStream outputStream) throws IOException, GeneralSecurityException {
         if (inputStream == null)
             return;
-        byte[] lIV = IV.get();
+        byte[] lIV = getIV();
         if (lIV == null) {
             lIV = new byte[16];
             int n = inputStream.read(lIV);

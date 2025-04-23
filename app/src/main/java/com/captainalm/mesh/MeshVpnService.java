@@ -221,9 +221,10 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
                         packetProcessor, settings.packetChargeSize, (byte) settings.maxTTL, settings.e2eEnabled(),
                         settings.e2eRequired(), settings.e2eIgnoreNonEncryptedPackets());
                 exceptionThread = new Thread(() -> {
-                    while (app.serviceActive) {
+                    Router r = router;
+                    while (app.serviceActive && r.isActive()) {
                         try {
-                            Exception e = router.getFirstException();
+                            Exception e = r.getFirstException();
                             app.showException(e);
                         } catch (InterruptedException ex) {
                             return;
@@ -232,9 +233,10 @@ public class MeshVpnService extends VpnService implements Handler.Callback {
                 });
                 exceptionThread.start();
                 nodeThread = new Thread(() -> {
-                    while (app.serviceActive) {
+                    Router r = router;
+                    while (app.serviceActive && r.isActive()) {
                         try {
-                            Router.NodeUpdate update = router.getFirstUpdate();
+                            Router.NodeUpdate update = r.getFirstUpdate();
                             if (update.removed)
                                 app.database.getNodesDAO().removeNode(new Node(update.node));
                             else

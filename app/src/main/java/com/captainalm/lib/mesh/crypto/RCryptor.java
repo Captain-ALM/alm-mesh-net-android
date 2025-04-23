@@ -18,13 +18,13 @@ public class RCryptor extends Cryptor {
             return new byte[0];
         byte[] buff = new byte[bytes.length];
         byte[] lIV;
-        if (this.IV.get() == null && bytes.length < 16) {
+        if (this.getIV() == null && bytes.length < 16) {
             lIV = Provider.generateIV(12);
             System.arraycopy(lIV, 0, buff, buff.length - 16, 12);
         } else
-            lIV = this.IV.get();
+            lIV = this.getIV();
         getCipher(Cipher.ENCRYPT_MODE, lIV).doFinal(bytes, 0,
-                (this.IV.get() == null) ? bytes.length - 16 : bytes.length, buff, 0);
+                (this.getIV() == null) ? bytes.length - 16 : bytes.length, buff, 0);
         return buff;
     }
 
@@ -32,7 +32,7 @@ public class RCryptor extends Cryptor {
     public byte[] decrypt(byte[] bytes) throws GeneralSecurityException {
         if (bytes == null)
             return new byte[0];
-        byte[] lIV = IV.get();
+        byte[] lIV = getIV();
         if (lIV == null) {
             if (bytes.length < 16)
                 return new byte[0];
@@ -41,7 +41,7 @@ public class RCryptor extends Cryptor {
         }
         byte[] buff = new byte[bytes.length];
         getCipher(Cipher.DECRYPT_MODE, lIV).doFinal(bytes, 0,
-                (IV.get() == null) ? buff.length - 16 : buff.length, buff, 0);
+                (getIV() == null) ? buff.length - 16 : buff.length, buff, 0);
         return buff;
     }
 }
